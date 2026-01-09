@@ -1,8 +1,8 @@
 streamlit
 streamlit-webrtc
-mediapipe
+mediapipe==0.10.14
 opencv-python-headless
-numpy
+numpy<2.0.0
 pandas
 Pillow
 google-generativeai
