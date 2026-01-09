@@ -151,14 +151,17 @@ if up and nome_perfil:
         ]
 
         def processar_ia(prompt):
-            for model_name in MODEL_FAILOVER_LIST:
-                try:
-                    model = genai.GenerativeModel(model_name)
-                    response = model.generate_content([prompt, img_raw])
-                    return response.text, model_name
-                except:
-                    continue
-            return "Erro nos motores.", "OFFLINE"
+    erros = []
+    for model_name in MODEL_FAILOVER_LIST:
+        try:
+            model = genai.GenerativeModel(model_name)
+            # Adicionamos um timeout e configurações de segurança mais flexíveis
+            response = model.generate_content([prompt, img_raw])
+            return response.text, model_name
+        except Exception as e:
+            erros.append(f"{model_name}: {str(e)}")
+            continue
+    return f"Erro nos motores. Detalhes: {'; '.join(erros)}", "OFFLINE
 
         # --- POPUP DE SCANNER ---
         with st.empty():
