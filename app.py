@@ -32,46 +32,49 @@ if "user_atual" not in st.session_state:
 # --- DESIGN SYSTEM TECHNOBOLT (Blindado para iPhone/Android/PC) ---
 st.markdown("""
 <style>
-    /* Forçar Fundo Escuro Global */
-    .stApp {
-        background-color: #000000 !important;
+    /* --- BLINDAGEM TOTAL DE BOTÕES --- */
+    
+    /* Botão Padrão e Botão de Download */
+    button, .stButton>button, .stDownloadButton>button {
+        background-color: #3b82f6 !important; /* Azul TechnoBolt */
         color: #ffffff !important;
+        border-radius: 8px !important;
+        border: none !important;
+        padding: 10px 24px !important;
+        font-weight: bold !important;
+        transition: all 0.3s ease !important;
+        width: 100% !important; /* Faz o botão ocupar a largura disponível no mobile */
+        margin-bottom: 10px !important;
     }
 
-    /* Forçar Barra Lateral Escura */
-    [data-testid="stSidebar"] {
-        background-color: #111111 !important;
-        border-right: 1px solid #333;
+    /* Efeito de Hover (Passar o mouse) */
+    button:hover, .stButton>button:hover, .stDownloadButton>button:hover {
+        background-color: #2563eb !important; /* Azul mais escuro no hover */
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4) !important;
+        transform: translateY(-2px) !important;
     }
 
-    /* Ajuste de todos os Inputs, Selects e Áreas de Texto */
-    input, select, textarea, div[role="listbox"], [data-baseweb="input"], [data-baseweb="select"] {
-        background-color: #222222 !important;
-        color: #ffffff !important;
+    /* Botões dentro da Barra Lateral (Sidebar) */
+    [data-testid="stSidebar"] button {
+        background-color: #222 !important;
         border: 1px solid #3b82f6 !important;
     }
-
-    /* Forçar cor de rótulos (labels) e textos informativos */
-    label, p, span, h1, h2, h3, .stMarkdown {
-        color: #ffffff !important;
+    
+    [data-testid="stSidebar"] button:hover {
+        background-color: #3b82f6 !important;
     }
 
-    /* Card de Resultado de Elite */
-    .result-card-unificado { 
-        background-color: #1a1a1a !important; 
-        color: #ffffff !important; 
-        padding: 30px; 
-        border-radius: 15px; 
-        border-top: 6px solid #3b82f6; 
-        margin-top: 20px;
-        line-height: 1.8;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    /* Ajuste para o texto não sumir em botões brancos residuais */
+    .stBaseButton-secondary {
+        background-color: #222 !important;
+        color: white !important;
     }
 
-    /* Ajuste das Tabs para não ficarem brancas no Desktop */
-    .stTabs [data-baseweb="tab-list"] { background-color: #000000; }
-    .stTabs [data-baseweb="tab"] { color: #888 !important; }
-    .stTabs [aria-selected="true"] { background-color: #3b82f6 !important; color: white !important; }
+    /* Forçar ícones dentro de botões a serem brancos */
+    button p, button svg {
+        color: white !important;
+        fill: white !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
