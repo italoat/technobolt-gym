@@ -259,17 +259,25 @@ elif escolha == "📸 Bio-Análise":
 
     st.info("ℹ️ **Protocolo TechnoBolt:** Envie uma foto com contornos visíveis. O sistema corrigirá a orientação automaticamente.")
     
-    up = st.file_uploader("Upload de Imagem para Diagnóstico", type=['jpg', 'jpeg', 'png'])
+    up = st.file_uploader("Upload de Imagem para Diagnóstico", type=['jpg', 'jpeg', 'png'], help="Toque para selecionar ou tirar uma foto")
     
-    # --- CORREÇÃO DE CARREGAMENTO MOBILE ---
     if up and nome_aluno:
         try:
-            # Abre a imagem, corrige orientação de celular (EXIF) e força RGB
-            img_input = Image.open(up)
+            # --- OTMIZAÇÃO ANDROID: LEITURA EM BUFFER ---
+            # Isso força o servidor a esperar o arquivo carregar completamente
+            bytes_data = up.getvalue() 
+            if len(bytes_data) == 0:
+                st.error("Arquivo vazio ou corrompido. Tente novamente.")
+                st.stop()
+                
+            img_input = Image.open(io.BytesIO(bytes_data))
+            
+            # --- CORREÇÃO DE ORIENTAÇÃO E CORES ---
             img_raw = ImageOps.exif_transpose(img_input).convert("RGB")
             
-            # Redimensionamento agressivo para evitar erro 502/Memory no Render
-            img_raw.thumbnail((800, 800), Image.Resampling.LANCZOS)
+            # Redimensionamento ainda mais agressivo para garantir fluidez em Androids antigos
+            # 600px é o ponto ideal para a IA ver detalhes sem travar a memória do Render
+            img_raw.thumbnail((600, 600), Image.Resampling.LANCZOS)
             
             st.image(img_raw, use_container_width=True, caption=f"Dossiê Biométrico: {nome_aluno}")
             
