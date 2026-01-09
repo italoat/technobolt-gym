@@ -10,6 +10,17 @@ import time
 import pandas as pd
 from PIL import Image, ImageStat
 
+api_key = os.environ.get("GEMINI_API_KEY")
+
+if not api_key:
+    # Se você estiver rodando localmente, ele tenta buscar do secrets.toml 
+    # Mas só chama se o arquivo existir, evitando o erro que você recebeu
+    try:
+        api_key = st.secrets["GEMINI_API_KEY"]
+    except:
+        api_key = None
+
+
 # --- 1. CONFIGURAÇÃO TECHNOBOLT LEGAL HUB ADAPTADA ---
 st.set_page_config(
     page_title="TechnoBolt Gym - Intelligence Hub",
@@ -118,7 +129,7 @@ if not st.session_state.logged_in:
     _, col_login, _ = st.columns([0.2, 1, 0.2]) # Responsivo para mobile
     with col_login:
         st.markdown('<div class="login-header"><span class="logo-blue">Technobolt</span></div>', unsafe_allow_html=True)
-        st.markdown("<p style='text-align:center; color:#888; font-weight:500;'>GYM HUB - JURIS INTELLIGENCE ADAPTED</p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center; color:#888; font-weight:500;'>GYM HUB - Personal Trainer  INTELLIGENCE</p>", unsafe_allow_html=True)
         u_id = st.text_input("Operador Gym", placeholder="Usuário")
         u_key = st.text_input("Chave", type="password", placeholder="Senha")
         if st.button("CONECTAR"):
@@ -258,25 +269,27 @@ elif escolha == "📸 Bio-Análise":
         score_precisao = 98 if 75 < brilho < 180 else 64
         
         if st.button("GERAR LAUDO E TREINO"):
-            # --- INICIALIZAÇÃO DA API ---
-            api_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
-            if not api_key:
-                st.error("Chave API não configurada no Render (Environment Variables).")
-                st.stop()
+        # Busca a chave de forma segura
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            try: api_key = st.secrets["GEMINI_API_KEY"]
+            except: pass
+
+        if not api_key:
+            st.error("⚠️ Chave API não encontrada. Configure a GEMINI_API_KEY no painel do Render.")
+            st.stop()
             
-            genai.configure(api_key=api_key)
+        genai.configure(api_key=api_key)
 
-            with st.spinner("IA TechnoBolt executando Failover Pentacamada..."):
-                
-                # --- SUA LISTA DE MOTORES PROPRIETÁRIA ---
-                MODEL_FAILOVER_LIST = [
-                    "models/gemini-3-flash-preview", 
-                    "models/gemini-2.5-flash", 
-                    "models/gemini-2.0-flash", 
-                    "models/gemini-2.0-flash-lite", 
-                    "models/gemini-flash-latest"
-                ]
-
+        with st.spinner("IA TechnoBolt executando Failover Pentacamada..."):
+            # Sua lista proprietária
+            MODEL_FAILOVER_LIST = [
+                "models/gemini-3-flash-preview", 
+                "models/gemini-2.5-flash", 
+                "models/gemini-2.0-flash", 
+                "models/gemini-2.0-flash-lite", 
+                "models/gemini-flash-latest"
+            ]
                 laudo_ia = None
                 modelo_vencedor = "OFFLINE"
 
