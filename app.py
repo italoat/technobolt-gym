@@ -1,4 +1,6 @@
 import streamlit as st
+import google.generativeai as genai
+import os
 import mediapipe as mp
 import cv2
 import numpy as np
