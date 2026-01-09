@@ -2,17 +2,15 @@
 maxUploadSize = 30
 enableCORS = false
 enableXsrfProtection = false
+headless = true
 
 [browser]
 gatherUsageStats = false
 
 [theme]
-primaryColor = "#3b82f6"
-backgroundColor = "#000000"
-secondaryBackgroundColor = "#111111"
-textColor = "#ffffff"
+base="dark"
+primaryColor="#3b82f6"
+backgroundColor="#000000"
+secondaryBackgroundColor="#111111"
+textColor="#ffffff"
 
-[server]
-headless = true
-enableCORS = false
-enableXsrfProtection = false
