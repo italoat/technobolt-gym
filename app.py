@@ -208,7 +208,25 @@ elif escolha == "🏋️ Corretor Live":
 elif escolha == "📸 Bio-Análise":
     from fpdf import FPDF
     import io
-    from PIL import Image, ImageOps, ImageStat
+    import gc
+    from PIL import Image, ImageOps
+
+    # CSS Blindado para garantir leitura em iPhone/PC (Texto Branco sempre)
+    st.markdown("""
+    <style>
+        .result-card-unificado {
+            background-color: #1a1a1a !important;
+            color: #ffffff !important;
+            padding: 25px;
+            border-radius: 15px;
+            border-top: 6px solid #3b82f6;
+            margin-top: 20px;
+        }
+        .result-card-unificado * {
+            color: #ffffff !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
 
     st.markdown('<div class="main-card"><h2>Consultoria Biomecânica Advanced</h2><p>Dossiê de elite com processamento em Failover Pentacamada.</p></div>', unsafe_allow_html=True)
     
@@ -222,42 +240,34 @@ elif escolha == "📸 Bio-Análise":
         altura_aluno = st.number_input("Altura (cm)", min_value=100, max_value=250, step=1, value=170)
         peso_aluno = st.number_input("Peso Atual (kg)", min_value=30.0, max_value=250.0, step=0.1, value=75.0)
 
-    st.info("ℹ️ **Protocolo TechnoBolt:** Envie uma foto com contornos visíveis. O sistema corrigirá a orientação automaticamente.")
+    st.info("ℹ️ **Protocolo TechnoBolt:** O sistema processa automaticamente a orientação e compressão da imagem para mobile.")
     
-    up = st.file_uploader("Upload de Imagem para Diagnóstico", type=['jpg', 'jpeg', 'png'], help="Toque para selecionar ou tirar uma foto")
+    up = st.file_uploader("Upload de Imagem para Diagnóstico", type=['jpg', 'jpeg', 'png'])
     
     if up and nome_aluno:
         try:
-            # --- OTMIZAÇÃO ANDROID: LEITURA EM BUFFER ---
-            # Isso força o servidor a esperar o arquivo carregar completamente
-            bytes_data = up.getvalue() 
-            if len(bytes_data) == 0:
-                st.error("Arquivo vazio ou corrompido. Tente novamente.")
-                st.stop()
-                
+            # --- LEITURA ROBUSTA ANTI-LOGOUT ---
+            bytes_data = up.getvalue()
             img_input = Image.open(io.BytesIO(bytes_data))
             
-            # --- CORREÇÃO DE ORIENTAÇÃO E CORES ---
+            # Correção de Orientação (EXIF) e Conversão RGB (Fix para iPhone/Android)
             img_raw = ImageOps.exif_transpose(img_input).convert("RGB")
             
-            # Redimensionamento ainda mais agressivo para garantir fluidez em Androids antigos
-            # 600px é o ponto ideal para a IA ver detalhes sem travar a memória do Render
+            # Redimensionamento de Segurança (600px garante que não dê crash no Render/Mobile)
             img_raw.thumbnail((600, 600), Image.Resampling.LANCZOS)
             
             st.image(img_raw, use_container_width=True, caption=f"Dossiê Biométrico: {nome_aluno}")
             
+            # Limpeza de memória imediata
+            gc.collect()
+
             if st.button("GERAR DOSSIÊ PDF"):
                 import os
                 import google.generativeai as genai
                 
-                # Busca API Key de forma blindada
-                api_key = os.environ.get("GEMINI_API_KEY")
+                api_key = os.environ.get("GEMINI_API_KEY") or (st.secrets["GEMINI_API_KEY"] if "GEMINI_API_KEY" in st.secrets else None)
                 if not api_key:
-                    try: api_key = st.secrets["GEMINI_API_KEY"]
-                    except: api_key = None
-
-                if not api_key:
-                    st.error("⚠️ Erro: Chave API não configurada no Render (Environment Variables).")
+                    st.error("⚠️ Erro: Chave API não configurada.")
                     st.stop()
                 
                 genai.configure(api_key=api_key)
@@ -274,7 +284,7 @@ elif escolha == "📸 Bio-Análise":
 
                     imc = peso_aluno / ((altura_aluno/100)**2)
 
-                    # PROMPT DE ELITE: Sem lixo, com tradução e justificativa técnica
+                    # --- PROMPT COMPLETO E PRECISO ---
                     prompt_master = f"""
                     Aja como um Personal Trainer Master PhD e Médico do Esporte.
                     RETORNE APENAS O CONTEÚDO DO LAUDO TÉCNICO. PROIBIDO SAUDAÇÕES OU COMENTÁRIOS EXTRAS.
@@ -285,19 +295,19 @@ elif escolha == "📸 Bio-Análise":
 
                     ESTRUTURA OBRIGATÓRIA DO LAUDO:
                     1. BIOTIPO (Heath-Carter): Identifique e explique intuitivamente entre parênteses.
-                    2. BF% E COMPOSIÇÃO: Estime a gordura e explique o que significa no espelho entre parênteses.
+                    2. BF% E COMPOSIÇÃO: Estime a gordura corporal e explique o significado intuitivo entre parênteses.
                     3. DIAGNÓSTICO POSTURAL: Analise simetria e postura baseada na foto, explicando entre parênteses.
                     4. TREINO SEMANAL (Segunda a Domingo): 
-                       - Monte um treino preciso.
-                       - Para CADA exercício, inclua obrigatoriamente uma 'OBSERVAÇÃO TÉCNICA' justificando a escolha baseada na idade, peso, altura e o que foi visto na foto.
+                       - Monte um treino preciso para a semana toda.
+                       - Para CADA exercício selecionado, inclua obrigatoriamente um campo 'OBSERVAÇÃO TÉCNICA' justificando a escolha baseada na idade, peso, altura e o que você viu na foto (ex: necessidade de correção postural, segurança articular ou foco em pontos fracos).
 
-                    Use Markdown. Termos técnicos sempre com tradução simples ao lado.
+                    Siga um tom estritamente profissional, analítico e pedagógico. 
+                    Use Markdown. Termos técnicos sempre acompanhados de tradução simples ao lado.
                     """
 
                     laudo_ia = None
                     modelo_vencedor = "OFFLINE"
 
-                    # Loop de Failover Pentacamada
                     for model_name in MODEL_FAILOVER_LIST:
                         try:
                             model = genai.GenerativeModel(model_name)
@@ -310,27 +320,27 @@ elif escolha == "📸 Bio-Análise":
                     if laudo_ia:
                         data_hora = time.strftime('%d/%m/%Y %H:%M')
                         
-                        # Exibição na Tela (Card Clean)
+                        # Interface com CSS Blindado
                         st.markdown(f"""
-                        <div class="result-card-unificado" style="border-top: 6px solid #3b82f6; background-color: #111; padding: 25px;">
-                            <div style="text-align: right; font-size: 10px; color: #555;">ENGINE: {modelo_vencedor.upper()}</div>
-                            <div style="color: #ffffff; line-height: 1.8;">{laudo_ia}</div>
+                        <div class="result-card-unificado">
+                            <div style="text-align: right; font-size: 10px; color: #555; margin-bottom: 10px;">ENGINE: {modelo_vencedor.upper()}</div>
+                            {laudo_ia}
                         </div>
                         """, unsafe_allow_html=True)
 
-                        # --- GERAÇÃO DE PDF PROFISSIONAL (CORREÇÃO DE ACENTOS) ---
+                        # --- GERAÇÃO DE PDF PROFISSIONAL ---
                         pdf = FPDF()
                         pdf.add_page()
                         pdf.set_auto_page_break(auto=True, margin=15)
                         
-                        # Cabeçalho PDF
+                        # Cabeçalho
                         pdf.set_font("Helvetica", "B", 16)
                         pdf.cell(0, 10, "LAUDO DE CONSULTORIA BIOMECÂNICA", ln=True, align="C")
-                        pdf.set_font("Helvetica", "I", 9)
-                        pdf.cell(0, 5, f"TechnoBolt Gym Intelligence - {data_hora}", ln=True, align="C")
+                        pdf.set_font("Helvetica", "I", 8)
+                        pdf.cell(0, 5, f"TechnoBolt Gym Intelligence Hub - {data_hora}", ln=True, align="C")
                         pdf.ln(10)
                         
-                        # Box de Dados do Aluno
+                        # Identificação Aluno
                         pdf.set_fill_color(30, 30, 30)
                         pdf.set_text_color(59, 130, 246)
                         pdf.set_font("Helvetica", "B", 11)
@@ -338,14 +348,12 @@ elif escolha == "📸 Bio-Análise":
                         
                         pdf.set_text_color(0, 0, 0)
                         pdf.set_font("Helvetica", "", 10)
-                        pdf.cell(0, 8, f"Idade: {idade_aluno}a | Altura: {altura_aluno}cm | Peso: {peso_aluno}kg | IMC: {imc:.2f}", ln=True, border='B')
+                        pdf.cell(0, 8, f"Idade: {idade_aluno}a | Estatura: {altura_aluno}cm | Massa: {peso_aluno}kg | IMC: {imc:.2f}", ln=True, border='B')
                         pdf.ln(5)
 
-                        # Conteúdo Técnico (Limpando Markdown e formatando acentos)
+                        # Texto Técnico (Tratamento de acentos Latin-1)
                         pdf.set_font("Helvetica", "", 10)
                         texto_limpo = laudo_ia.replace('#', '').replace('*', '').replace('>', '')
-                        
-                        # Codificação latin-1 para evitar símbolos estranhos nos acentos
                         pdf.multi_cell(0, 7, texto_limpo.encode('latin-1', 'replace').decode('latin-1'))
 
                         pdf_output = pdf.output(dest='S')
@@ -356,12 +364,11 @@ elif escolha == "📸 Bio-Análise":
                             mime="application/pdf"
                         )
                     else:
-                        st.error("⚠️ Todos os motores de IA falharam. Verifique sua GEMINI_API_KEY.")
+                        st.error("⚠️ Falha crítica nos motores de Failover.")
         except Exception as e:
-            st.error(f"Erro ao processar imagem: {e}. Tente uma foto mais leve ou print da galeria.")
-            
+            st.error(f"Erro de processamento: {e}")
     elif up and not nome_aluno:
-        st.warning("⚠️ Preencha o Nome do Aluno para habilitar o processamento.")
+        st.warning("⚠️ Digite o nome do aluno antes de carregar a foto para evitar o reset da sessão.")
 
 st.markdown("---")
 st.caption(f"TechnoBolt Gym © 2026 | Operador: {st.session_state.user_atual.upper()}")
