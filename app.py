@@ -14,47 +14,63 @@ st.set_page_config(page_title="TechnoBolt Gym Hub", layout="wide", page_icon="�
 # --- DESIGN SYSTEM TECHNOBOLT (BLACK & GRAY ELITE) ---
 st.markdown("""
 <style>
+    /* 1. FUNDO PRETO TOTAL E FONTES BRANCAS */
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"] {
         background-color: #000000 !important;
     }
     html, body, [class*="st-"] { color: #ffffff !important; font-family: 'Inter', sans-serif; }
-    
-    /* Botões de Ação */
+    h1, h2, h3, p, span, label, li { color: #ffffff !important; }
+
+    /* 2. BOTÕES PRINCIPAIS (Login e Downloads) - CINZA ESCURO */
     .stButton > button, .stDownloadButton > button {
         background-color: #333333 !important;
         color: #ffffff !important;
         border: 1px solid #444 !important;
-        border-radius: 12px !important;
-        min-height: 55px !important;
-        width: 100% !important;
-        font-weight: 700 !important;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        transition: 0.4s;
-    }
-    .stButton > button:hover { background-color: #3b82f6 !important; border-color: #3b82f6 !important; transform: translateY(-2px); }
-
-    /* Inputs e Selects */
-    input, div[data-baseweb="select"] > div, [data-testid="stFileUploader"] {
-        background-color: #111111 !important;
-        color: white !important;
-        border: 1px solid #222 !important;
         border-radius: 10px !important;
+        min-height: 50px !important;
+        width: 100% !important;
+        font-weight: bold !important;
+        text-transform: uppercase;
+        margin-top: 10px !important;
+        transition: 0.3s;
+    }
+    .stButton > button:hover { background-color: #3b82f6 !important; border-color: #3b82f6 !important; }
+
+    /* 3. CORREÇÃO DOS BOTÕES DE CONTROLE (+ / -) E ÍCONE DO OLHO */
+    button[kind="secondary"] {
+        min-height: auto !important;
+        width: auto !important;
+        background-color: transparent !important;
+        border: none !important;
+    }
+    [data-testid="stTextInputPasswordVisibility"] {
+        right: 10px !important;
+        height: 100% !important;
+        display: flex !important;
+        align-items: center !important;
     }
 
-    /* Cards de Resultado */
+    /* 4. CAMPOS DE ENTRADA E SELECTS */
+    input, div[data-baseweb="select"] > div, [data-testid="stFileUploader"] {
+        background-color: #1a1a1a !important;
+        color: white !important;
+        border: 1px solid #333 !important;
+    }
+
+    /* 5. CARDS DE RESULTADO TECHNOBOLT */
     .result-card-unificado { 
-        background-color: #0a0a0a !important; 
-        border: 1px solid #1a1a1a;
-        border-left: 6px solid #3b82f6;
+        background-color: #111111 !important; 
+        border-top: 6px solid #3b82f6;
         border-radius: 15px;
-        padding: 30px;
+        padding: 25px;
+        box-shadow: 0 10px 30px rgba(0,0,0,1);
         line-height: 1.8;
-        font-size: 15px;
-        box-shadow: 0 15px 40px rgba(0,0,0,0.8);
     }
     
-    .stTabs [aria-selected="true"] { background-color: #111 !important; color: #3b82f6 !important; border-bottom: 2px solid #3b82f6 !important; }
+    .stTabs [aria-selected="true"] { background-color: #333 !important; color: white !important; border-radius: 5px !important; }
+    
+    @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+    .scanning-text { color:#3b82f6; letter-spacing: 2px; animation: blink 1.5s infinite; }
 </style>
 """, unsafe_allow_html=True)
 
