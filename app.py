@@ -34,18 +34,17 @@ st.markdown("""
     }
     .stButton > button:hover { background-color: #3b82f6 !important; border-color: #3b82f6 !important; }
 
-    /* 3. FIX: SETA DA BARRA LATERAL E ÍCONES INTERNOS */
-    /* Impede que o CSS force texto branco em cima de ícones do sistema */
-    button[data-testid="stSidebarCollapseButton"] svg, 
-    button[kind="secondary"] svg {
-        fill: #3b82f6 !important; /* Deixa a seta azul para destaque */
-    }
-    
-    /* Remove a borda e o fundo cinza que deformam a seta */
-    button[data-testid="stSidebarCollapseButton"] {
+    /* 3. FIX: SETA DA BARRA LATERAL - LIMPEZA TOTAL */
+    [data-testid="stSidebarCollapseButton"] {
         background-color: transparent !important;
         border: none !important;
-        box-shadow: none !important;
+        color: #3b82f6 !important;
+    }
+    
+    [data-testid="stSidebarCollapseButton"] svg {
+        fill: #3b82f6 !important;
+        width: 25px !important;
+        height: 25px !important;
     }
 
     /* 4. FIX: BOTÃO DO OLHO E CONTROLES (+ / -) */
@@ -163,15 +162,25 @@ with st.sidebar:
     up = st.file_uploader("📸 Foto para Análise", type=['jpg', 'jpeg', 'png'])
 
 # --- MOTOR DE RODÍZIO 7 CHAVES ---
-def processar_elite(prompt, img):
+# --- MOTOR PENTACAMADA COM CORREÇÃO BINÁRIA ---
+def processar_elite(prompt, img_pil):
+    # CORREÇÃO: Converte PIL para bytes antes de enviar (Resolve o erro de bytearray)
+    img_byte_arr = io.BytesIO()
+    img_pil.save(img_byte_arr, format='JPEG')
+    # Formato obrigatório para a API do Google Gemini
+    image_parts = [{"mime_type": "image/jpeg", "data": img_byte_arr.getvalue()}]
+
     chaves = [os.environ.get(f"GEMINI_CHAVE_{i}") or st.secrets.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8)]
     chaves = [k for k in chaves if k]
     
-    motores = ["models/gemini-3-flash-preview", 
+    # SEUS MOTORES ORIGINAIS PRESERVADOS
+    motores = [
+        "models/gemini-3-flash-preview", 
         "models/gemini-2.5-flash", 
         "models/gemini-2.0-flash", 
         "models/gemini-2.0-flash-lite", 
-        "models/gemini-flash-latest"]
+        "models/gemini-flash-latest"
+    ]
 
     for idx, key in enumerate(chaves):
         try:
@@ -179,14 +188,15 @@ def processar_elite(prompt, img):
             for m in motores:
                 try:
                     model = genai.GenerativeModel(m)
-                    # Configuração para resposta limpa
-                    response = model.generate_content([prompt, img])
+                    # Passamos o dicionário de imagem tratado
+                    response = model.generate_content([prompt, image_parts[0]])
                     return limpar_texto(response.text), f"CONTA {idx+1} - {m.upper()}"
                 except Exception as e:
-                    if "429" in str(e): break
+                    if "429" in str(e): break # Pula para a próxima conta se estourar cota
                     continue
         except: continue
-    return "Erro Crítico: Todas as contas atingiram o limite.", "OFFLINE"
+    return "Erro Crítico: Limite de cota atingido em todas as contas.", "OFFLINE"
+
 
 # --- PROCESSAMENTO ---
 if up and nome_perfil:
