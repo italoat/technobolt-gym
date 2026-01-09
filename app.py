@@ -32,7 +32,31 @@ if "user_atual" not in st.session_state:
 # --- DESIGN SYSTEM TECHNOBOLT (Blindado para iPhone/Android/PC) ---
 st.markdown("""
 <style>
-    .main-card { background-color: #111; padding: 25px; border-radius: 15px; border-left: 5px solid #3b82f6; margin-bottom: 20px; }
+    /* Forçar Fundo Escuro Global */
+    .stApp {
+        background-color: #000000 !important;
+        color: #ffffff !important;
+    }
+
+    /* Forçar Barra Lateral Escura */
+    [data-testid="stSidebar"] {
+        background-color: #111111 !important;
+        border-right: 1px solid #333;
+    }
+
+    /* Ajuste de todos os Inputs, Selects e Áreas de Texto */
+    input, select, textarea, div[role="listbox"], [data-baseweb="input"], [data-baseweb="select"] {
+        background-color: #222222 !important;
+        color: #ffffff !important;
+        border: 1px solid #3b82f6 !important;
+    }
+
+    /* Forçar cor de rótulos (labels) e textos informativos */
+    label, p, span, h1, h2, h3, .stMarkdown {
+        color: #ffffff !important;
+    }
+
+    /* Card de Resultado de Elite */
     .result-card-unificado { 
         background-color: #1a1a1a !important; 
         color: #ffffff !important; 
@@ -43,12 +67,11 @@ st.markdown("""
         line-height: 1.8;
         box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
-    .result-card-unificado * { color: #ffffff !important; font-family: 'Inter', sans-serif; }
-    .engine-tag { text-align: right; font-size: 10px; color: #555 !important; font-weight: bold; margin-bottom: 10px; }
+
+    /* Ajuste das Tabs para não ficarem brancas no Desktop */
+    .stTabs [data-baseweb="tab-list"] { background-color: #000000; }
+    .stTabs [data-baseweb="tab"] { color: #888 !important; }
     .stTabs [aria-selected="true"] { background-color: #3b82f6 !important; color: white !important; }
-    
-    @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-    .scanning-text { color:#3b82f6; font-family: sans-serif; letter-spacing: 2px; animation: blink 1.5s infinite; }
 </style>
 """, unsafe_allow_html=True)
 
