@@ -37,79 +37,44 @@ if 'logged_in' not in st.session_state:
 # --- 3. DESIGN SYSTEM TECHNOBOLT (DARK MODE & RESPONSIVO) ---
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-    
-    /* FUNDO GLOBAL E FONTES */
-    html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"] { 
-        background-color: #000000 !important; 
-        font-family: 'Inter', sans-serif !important; 
-        color: #ffffff !important;
-    }
-
-    h1, h2, h3, h4, p, label, span, div, .stMarkdown { color: #ffffff !important; }
-    [data-testid="stSidebar"] { display: none !important; }
-    header, footer { visibility: hidden !important; }
-
-    /* LOGO E LOGIN */
-    .login-header { text-align: center; width: 100%; margin-bottom: 40px; }
-    .logo-blue {
-        font-size: 52px; font-weight: 800;
-        color: #3b82f6 !important; 
-        letter-spacing: -2px;
-        display: block;
-    }
-
-    /* COMPONENTES DE UI (SELECT, INPUT, UPLOADER) */
-    div[data-baseweb="select"] > div, div[data-baseweb="input"] > div, div[data-baseweb="textarea"] > div {
-        background-color: #1a1a1a !important;
-        border: 1px solid #333333 !important;
-        border-radius: 12px !important;
-        color: #ffffff !important;
+    /* Card de Resultado Blindado para iPhone/PC */
+    .result-card-unificado {
+        background-color: #1a1a1a !important; /* Fundo grafite escuro fixo */
+        color: #ffffff !important;           /* Fonte Branca Fixa */
+        padding: 25px;
+        border-radius: 15px;
+        border-left: 5px solid #3b82f6;
+        margin-top: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     }
     
-    [data-testid="stFileUploader"] {
-        background-color: #1a1a1a !important;
-        border: 1px dashed #404040 !important;
-        border-radius: 15px !important;
+    /* Forçar todos os textos dentro do card a serem brancos */
+    .result-card-unificado p, 
+    .result-card-unificado span, 
+    .result-card-unificado div,
+    .result-card-unificado li,
+    .result-card-unificado table {
+        color: #ffffff !important; 
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* Estilo para Tabelas de Treino no iPhone */
+    .result-card-unificado table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #222 !important;
+    }
+    
+    .result-card-unificado th {
+        background-color: #3b82f6 !important;
+        color: white !important;
         padding: 10px;
     }
 
-    /* BOTÕES GERAIS */
-    .stButton > button {
-        width: 100%; border-radius: 10px; height: 3.8em; font-weight: 700;
-        background-color: #1a1a1a !important; color: #ffffff !important; 
-        border: 1px solid #333333 !important; transition: 0.3s;
-    }
-    .stButton > button:hover { background-color: #3b82f6 !important; border-color: #ffffff !important; }
-
-    /* CARDS RESPONSIVOS */
-    .main-card {
-        background-color: #1a1a1a !important; 
-        border: 1px solid #333333; 
-        border-radius: 20px;
-        padding: 30px; 
-        margin-bottom: 20px;
-    }
-    .result-card-unificado {
-        background-color: #1a1a1a !important;
-        border: 1px solid #333333;
-        border-radius: 20px;
-        padding: 25px;
-        color: #ffffff !important;
-        margin-top: 15px;
-    }
-    .result-title {
-        color: #3b82f6 !important;
-        font-weight: 800; font-size: 24px;
-        border-bottom: 1px solid #333; padding-bottom: 10px;
-        margin-bottom: 15px;
-    }
-
-    /* MEDIA QUERIES PARA MOBILE */
-    @media (max-width: 768px) {
-        .logo-blue { font-size: 40px; }
-        .main-card { padding: 20px; }
-        .stMetric { margin-bottom: 15px; }
+    .result-card-unificado td {
+        border: 1px solid #333;
+        padding: 8px;
+        color: #eee !important;
     }
 </style>
 """, unsafe_allow_html=True)
