@@ -1,374 +1,155 @@
 import streamlit as st
 import google.generativeai as genai
-import os
-import mediapipe as mp
-import cv2
-import numpy as np
-from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, RTCConfiguration
-import threading
+from PIL import Image, ImageOps
+import io
 import time
-import pandas as pd
-from PIL import Image, ImageStat
+import os
+import gc
+from fpdf import FPDF
 
+# --- CONFIGURAÇÃO DA PÁGINA ---
+st.set_page_config(page_title="TechnoBolt Gym Hub", layout="wide", page_icon="🏋️")
 
+# --- BANCO DE DADOS DE USUÁRIOS (RESTAURADO) ---
+# Substitua pelos seus usuários reais
+USUARIOS_DB = {
+    "admin": "bolt123",
+    "atleta": "gym2024",
+    "convidado": "techno"
+}
 
-# --- 1. CONFIGURAÇÃO TECHNOBOLT LEGAL HUB ADAPTADA ---
-st.set_page_config(
-    page_title="TechnoBolt Gym - Intelligence Hub",
-    page_icon="⚡",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+# --- ESTADO INICIAL ---
+if "logado" not in st.session_state:
+    st.session_state.logado = False
+if "user_atual" not in st.session_state:
+    st.session_state.user_atual = ""
 
-# Configuração ICE para Cloud/Render (Garante funcionamento no 4G/5G)
-RTC_CONFIGURATION = RTCConfiguration(
-    {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
-)
-
-# --- 2. GESTÃO DE ESTADO (LOGIN E AUDITORIA) ---
-if 'logged_in' not in st.session_state:
-    st.session_state.update({
-        'logged_in': False,
-        'user_atual': None,
-        'login_time': time.time(),
-        'history': []
-    })
-
-# --- 3. DESIGN SYSTEM TECHNOBOLT (DARK MODE & RESPONSIVO) ---
+# --- DESIGN SYSTEM ---
 st.markdown("""
 <style>
-    /* Card de Resultado Blindado para iPhone/PC */
-    .result-card-unificado {
-        background-color: #1a1a1a !important; /* Fundo grafite escuro fixo */
-        color: #ffffff !important;           /* Fonte Branca Fixa */
-        padding: 25px;
-        border-radius: 15px;
-        border-left: 5px solid #3b82f6;
-        margin-top: 20px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-    }
-    
-    /* Forçar todos os textos dentro do card a serem brancos */
-    .result-card-unificado p, 
-    .result-card-unificado span, 
-    .result-card-unificado div,
-    .result-card-unificado li,
-    .result-card-unificado table {
+    .main-card { background-color: #111; padding: 20px; border-radius: 15px; border-left: 5px solid #3b82f6; margin-bottom: 20px; }
+    .result-card-unificado { 
+        background-color: #1a1a1a !important; 
         color: #ffffff !important; 
-        font-family: 'Inter', sans-serif;
+        padding: 25px; 
+        border-radius: 15px; 
+        border-top: 6px solid #3b82f6; 
+        margin-top: 20px;
     }
-
-    /* Estilo para Tabelas de Treino no iPhone */
-    .result-card-unificado table {
-        width: 100%;
-        border-collapse: collapse;
-        background: #222 !important;
-    }
-    
-    .result-card-unificado th {
-        background-color: #3b82f6 !important;
-        color: white !important;
-        padding: 10px;
-    }
-
-    .result-card-unificado td {
-        border: 1px solid #333;
-        padding: 8px;
-        color: #eee !important;
-    }
+    .result-card-unificado * { color: #ffffff !important; }
+    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
+    .stTabs [aria-selected="true"] { background-color: #3b82f6 !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 4. TELA DE LOGIN ---
-if not st.session_state.logged_in:
-    st.markdown("<div style='height: 10vh;'></div>", unsafe_allow_html=True)
-    _, col_login, _ = st.columns([0.2, 1, 0.2]) # Responsivo para mobile
-    with col_login:
-        st.markdown('<div class="login-header"><span class="logo-blue">Technobolt</span></div>', unsafe_allow_html=True)
-        st.markdown("<p style='text-align:center; color:#888; font-weight:500;'>GYM HUB - Personal Trainer  INTELLIGENCE</p>", unsafe_allow_html=True)
-        u_id = st.text_input("Operador Gym", placeholder="Usuário")
-        u_key = st.text_input("Chave", type="password", placeholder="Senha")
-        if st.button("CONECTAR"):
-            banco = {"admin": "admin", "aluno.teste": "gym2026", "personal.bolado": "treino@2026"}
-            if u_id in banco and banco[u_id] == u_key:
-                st.session_state.logged_in = True
-                st.session_state.user_atual = u_id
+# --- TELA DE LOGIN ---
+if not st.session_state.logado:
+    st.markdown('<div class="main-card"><h1>TechnoBolt Gym</h1><p>Acesse sua Consultoria de Elite</p></div>', unsafe_allow_html=True)
+    with st.container():
+        u = st.text_input("Usuário")
+        p = st.text_input("Senha", type="password")
+        if st.button("ENTRAR"):
+            if u in USUARIOS_DB and USUARIOS_DB[u] == p:
+                st.session_state.logado = True
+                st.session_state.user_atual = u
                 st.rerun()
-    st.stop()
-
-# --- 5. CABEÇALHO OPERACIONAL ---
-st.markdown(f'<div style="padding:10px 0;"><span style="color:#3b82f6; font-weight:800; font-size:24px;">Technobolt</span> <span style="color:#666;">| GYM HUB</span></div>', unsafe_allow_html=True)
-c1, c2 = st.columns([4, 1])
-with c1: st.write(f"🏋️ Operador: **{st.session_state.user_atual.upper()}**")
-with c2: 
-    if st.button("🚪 Sair"):
-        st.session_state.logged_in = False
-        st.rerun()
-
-menu = ["🏠 Dashboard", "🏋️ Corretor Live", "📸 Bio-Análise", "📊 Histórico"]
-escolha = st.selectbox("Seletor de Módulo", menu, label_visibility="collapsed")
-st.markdown("<hr style='border-color: #333; margin-bottom:30px;'>", unsafe_allow_html=True)
-
-# --- 6. MOTOR DE VISÃO COMPUTACIONAL (EDGE COMPUTING) ---
-class BiomecanicaProcessor(VideoTransformerBase):
-    def __init__(self):
-        # Importação local para garantir que o erro seja capturado no log do Render
-        import mediapipe as mp
-        self.mp_pose = mp.solutions.pose
-        self.mp_drawing = mp.solutions.drawing_utils
-        
-        self.pose = self.mp_pose.Pose(
-            min_detection_confidence=0.5, 
-            min_tracking_confidence=0.5,
-            model_complexity=1 # Essencial para não estourar a RAM do Render
-        )
-        self.count = 0
-        self.stage = None
-        self.precision = 0
-        self.feedback = "Scanner Ativo"
-        self._lock = threading.Lock()
-
-    def transform(self, frame):
-        img = frame.to_ndarray(format="bgr24")
-        img = cv2.flip(img, 1)
-        
-        # Converte para RGB para o MediaPipe
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        results = self.pose.process(img_rgb)
-        
-        with self._lock:
-            if results.pose_landmarks:
-                lm = results.pose_landmarks.landmark
-                # Cálculo de precisão por visibilidade
-                self.precision = int(np.mean([l.visibility for l in lm]) * 100)
-                
-                # Exemplo: Pontos do Braço
-                p11, p13, p15 = lm[11], lm[13], lm[15]
-                a = np.array([p11.x, p11.y])
-                b = np.array([p13.x, p13.y])
-                c = np.array([p15.x, p15.y])
-                
-                rad = np.arctan2(c[1]-b[1], c[0]-b[0]) - np.arctan2(a[1]-b[1], a[0]-b[0])
-                ang = np.abs(rad * 180.0 / np.pi)
-                if ang > 180: ang = 360 - ang
-
-                if ang > 160: self.stage = "desc"
-                if ang < 35 and self.stage == "desc":
-                    self.stage = "sub"
-                    self.count += 1
-                
-                # Desenha os pontos (Skeleton)
-                self.mp_drawing.draw_landmarks(
-                    img, results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS,
-                    self.mp_drawing.DrawingSpec(color=(59, 130, 246), thickness=2, circle_radius=2)
-                )
             else:
-                self.precision = 0
-        return img
+                st.error("Credenciais inválidas.")
+    st.stop() # Interrompe o script para quem não está logado
 
-# --- 7. MÓDULOS OPERACIONAIS ---
+# --- SE O USUÁRIO CHEGOU AQUI, ELE ESTÁ LOGADO ---
 
-if escolha == "🏠 Dashboard":
-    st.markdown('<div class="main-card"><h2>Command Center</h2><p>MONITORIA DE PERFORMANCE E RISCO</p></div>', unsafe_allow_html=True)
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Failover Status", "Active", "Edge-On")
-    c2.metric("Sessão", st.session_state.user_atual.split('.')[0].upper(), "Protegida")
-    c3.metric("Taxa de Precisão", "96%", "+3.2%")
+# --- FUNÇÃO PDF ---
+def gerar_pdf(nome, idade, altura, peso, imc, objetivo, conteudo):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.cell(0, 10, "TECHNOBOLT GYM - DOSSIÊ DE ELITE", ln=True, align="C")
+    pdf.ln(10)
+    pdf.set_fill_color(30, 30, 30)
+    pdf.set_text_color(59, 130, 246)
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.cell(0, 8, f" ATLETA: {nome.upper()}", ln=True, fill=True)
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font("Helvetica", "", 10)
+    pdf.cell(0, 8, f"Idade: {idade}a | Peso: {peso}kg | IMC: {imc:.2f}", ln=True, border='B')
+    pdf.ln(5)
+    pdf.set_font("Helvetica", "", 10)
+    clean_text = conteudo.replace('#', '').replace('*', '').replace('>', '')
+    pdf.multi_cell(0, 7, clean_text.encode('latin-1', 'replace').decode('latin-1'))
+    return pdf.output(dest='S')
 
-elif escolha == "🏋️ Corretor Live":
-    st.markdown('<div class="main-card"><h2>Corretor Live</h2><p>Processamento local para latência inferior a 150ms.</p></div>', unsafe_allow_html=True)
-    col_v, col_m = st.columns([1.8, 1])
-    
-    with col_v:
-        ctx = webrtc_streamer(key="gym-live", video_transformer_factory=BiomecanicaProcessor, rtc_configuration=RTC_CONFIGURATION)
-    
-    with col_m:
-        st.markdown('<div class="result-card-unificado">', unsafe_allow_html=True)
-        st.markdown('<div class="result-title">Métricas TechnoBolt</div>', unsafe_allow_html=True)
-        p_reps = st.empty()
-        p_prec = st.empty()
-        p_diag = st.empty()
+# --- SIDEBAR (PERFIL + LOGOUT) ---
+with st.sidebar:
+    st.header(f"Bem-vindo, {st.session_state.user_atual.capitalize()}")
+    if st.button("Sair/Logout"):
+        st.session_state.logado = False
+        st.rerun()
+    st.divider()
+    st.subheader("📋 Perfil Biométrico")
+    nome = st.text_input("Nome Completo", value=st.session_state.user_atual.capitalize())
+    idade = st.number_input("Idade", 12, 90, 25)
+    altura = st.number_input("Altura (cm)", 100, 250, 170)
+    peso = st.number_input("Peso (kg)", 30.0, 250.0, 75.0)
+    objetivo = st.selectbox("Objetivo", ["Hipertrofia", "Lipólise", "Performance", "Postural"])
+    up = st.file_uploader("📸 Foto Bio-Análise", type=['jpg', 'png', 'jpeg'])
+
+# --- HUB DE INTELIGÊNCIA ---
+if up and nome:
+    try:
+        # Buffer Anti-Logout Mobile
+        bytes_data = up.getvalue()
+        img_input = Image.open(io.BytesIO(bytes_data))
+        img_raw = ImageOps.exif_transpose(img_input).convert("RGB")
+        img_raw.thumbnail((600, 600), Image.Resampling.LANCZOS)
+        gc.collect()
         
-        if ctx.video_transformer:
-            while ctx.state.playing:
-                with ctx.video_transformer._lock:
-                    reps = ctx.video_transformer.count
-                    prec = ctx.video_transformer.precision
-                    feed = ctx.video_transformer.feedback
-                
-                p_reps.metric("REPETIÇÕES VÁLIDAS", reps)
-                p_prec.metric("PRECISÃO DA CÂMERA", f"{prec}%")
-                
-                if prec < 75: p_diag.warning(f"DIAGNÓSTICO: {feed}")
-                else: p_diag.success(f"STATUS: {feed}")
-                
-                time.sleep(0.1)
-        st.markdown('</div>', unsafe_allow_html=True)
+        imc = peso / ((altura/100)**2)
+        api_key = os.environ.get("GEMINI_API_KEY") or (st.secrets["GEMINI_API_KEY"] if "GEMINI_API_KEY" in st.secrets else None)
+        if not api_key: st.stop()
+        genai.configure(api_key=api_key)
 
-elif escolha == "📸 Bio-Análise":
-    from fpdf import FPDF
-    import io
-    import gc
-    from PIL import Image, ImageOps
+        # SEUS MOTORES PENTACAMADA
+        MODEL_FAILOVER_LIST = ["models/gemini-3-flash-preview", "models/gemini-2.5-flash", "models/gemini-2.0-flash", "models/gemini-2.0-flash-lite", "models/gemini-flash-latest"]
 
-    # CSS Blindado para garantir leitura em iPhone/PC (Texto Branco sempre)
-    st.markdown("""
-    <style>
-        .result-card-unificado {
-            background-color: #1a1a1a !important;
-            color: #ffffff !important;
-            padding: 25px;
-            border-radius: 15px;
-            border-top: 6px solid #3b82f6;
-            margin-top: 20px;
-        }
-        .result-card-unificado * {
-            color: #ffffff !important;
-        }
-    </style>
-    """, unsafe_allow_html=True)
+        def processar(prompt):
+            for model_name in MODEL_FAILOVER_LIST:
+                try:
+                    model = genai.GenerativeModel(model_name)
+                    response = model.generate_content([prompt, img_raw])
+                    return response.text, model_name
+                except: continue
+            return "Erro nos motores.", "OFFLINE"
 
-    st.markdown('<div class="main-card"><h2>Consultoria Biomecânica Advanced</h2><p>Dossiê de elite com processamento em Failover Pentacamada.</p></div>', unsafe_allow_html=True)
-    
-    # --- FORMULÁRIO DE DADOS BIOMÉTRICOS ---
-    with st.expander("📝 Dados do Aluno (Necessário para Precisão)", expanded=True):
-        c1, c2 = st.columns(2)
-        nome_aluno = st.text_input("Nome Completo", placeholder="Ex: João Silva")
-        idade_aluno = st.number_input("Idade", min_value=12, max_value=90, step=1, value=25)
-        
-        c3, c4 = st.columns(2)
-        altura_aluno = st.number_input("Altura (cm)", min_value=100, max_value=250, step=1, value=170)
-        peso_aluno = st.number_input("Peso Atual (kg)", min_value=30.0, max_value=250.0, step=0.1, value=75.0)
+        tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Avaliação", "🥗 Nutrição", "💊 Suplementos", "🏋️ Treino", "📜 Completo"])
 
-    st.info("ℹ️ **Protocolo TechnoBolt:** O sistema processa automaticamente a orientação e compressão da imagem para mobile.")
-    
-    up = st.file_uploader("Upload de Imagem para Diagnóstico", type=['jpg', 'jpeg', 'png'])
-    
-    if up and nome_aluno:
-        try:
-            # --- LEITURA ROBUSTA ANTI-LOGOUT ---
-            bytes_data = up.getvalue()
-            img_input = Image.open(io.BytesIO(bytes_data))
-            
-            # Correção de Orientação (EXIF) e Conversão RGB (Fix para iPhone/Android)
-            img_raw = ImageOps.exif_transpose(img_input).convert("RGB")
-            
-            # Redimensionamento de Segurança (600px garante que não dê crash no Render/Mobile)
-            img_raw.thumbnail((600, 600), Image.Resampling.LANCZOS)
-            
-            st.image(img_raw, use_container_width=True, caption=f"Dossiê Biométrico: {nome_aluno}")
-            
-            # Limpeza de memória imediata
-            gc.collect()
+        with tab1:
+            res1, eng1 = processar(f"Aja como PhD em Antropometria. Analise {nome}, {idade}a, IMC {imc:.2f}. Biotipo, BF% e Postura. Traduza termos técnicos.")
+            st.markdown(f'<div class="result-card-unificado"><small>{eng1}</small><br>{res1}</div>', unsafe_allow_html=True)
+            st.download_button("Baixar PDF", data=bytes(gerar_pdf(nome, idade, altura, peso, imc, objetivo, res1)), file_name="Avaliacao.pdf")
 
-            if st.button("GERAR DOSSIÊ PDF"):
-                import os
-                import google.generativeai as genai
-                
-                api_key = os.environ.get("GEMINI_API_KEY") or (st.secrets["GEMINI_API_KEY"] if "GEMINI_API_KEY" in st.secrets else None)
-                if not api_key:
-                    st.error("⚠️ Erro: Chave API não configurada.")
-                    st.stop()
-                
-                genai.configure(api_key=api_key)
+        with tab2:
+            res2, eng2 = processar(f"Aja como Nutricionista PhD. Objetivo: {objetivo}. GET, Macros e Alimentos p/ biotipo. Traduza termos técnicos.")
+            st.markdown(f'<div class="result-card-unificado"><small>{eng2}</small><br>{res2}</div>', unsafe_allow_html=True)
+            st.download_button("Baixar PDF", data=bytes(gerar_pdf(nome, idade, altura, peso, imc, objetivo, res2)), file_name="Nutricao.pdf")
 
-                with st.spinner(f"Executando Protocolo Pentacamada para {nome_aluno}..."):
-                    # --- SUA LISTA DE MOTORES PROPRIETÁRIA ---
-                    MODEL_FAILOVER_LIST = [
-                        "models/gemini-3-flash-preview", 
-                        "models/gemini-2.5-flash", 
-                        "models/gemini-2.0-flash", 
-                        "models/gemini-2.0-flash-lite", 
-                        "models/gemini-flash-latest"
-                    ]
+        with tab3:
+            res3, eng3 = processar(f"Especialista em Suplementação. 3 suplementos p/ {objetivo} e este perfil. Justifique (Nexo Metabólico) e traduza termos.")
+            st.markdown(f'<div class="result-card-unificado"><small>{eng3}</small><br>{res3}</div>', unsafe_allow_html=True)
+            st.download_button("Baixar PDF", data=bytes(gerar_pdf(nome, idade, altura, peso, imc, objetivo, res3)), file_name="Suplementos.pdf")
 
-                    imc = peso_aluno / ((altura_aluno/100)**2)
+        with tab4:
+            res4, eng4 = processar(f"Personal Trainer PhD. Treino 7 dias p/ {objetivo}. Justifique cada um e dê substitutos. Traduza termos.")
+            st.markdown(f'<div class="result-card-unificado"><small>{eng4}</small><br>{res4}</div>', unsafe_allow_html=True)
+            st.download_button("Baixar PDF", data=bytes(gerar_pdf(nome, idade, altura, peso, imc, objetivo, res4)), file_name="Treino.pdf")
 
-                    # --- PROMPT COMPLETO E PRECISO ---
-                    prompt_master = f"""
-                    Aja como um Personal Trainer Master PhD e Médico do Esporte.
-                    RETORNE APENAS O CONTEÚDO DO LAUDO TÉCNICO. PROIBIDO SAUDAÇÕES OU COMENTÁRIOS EXTRAS.
+        with tab5:
+            completo = f"# AVALIAÇÃO\n{res1}\n\n# NUTRIÇÃO\n{res2}\n\n# SUPLEMENTOS\n{res3}\n\n# TREINO\n{res4}"
+            st.markdown(f'<div class="result-card-unificado">{completo}</div>', unsafe_allow_html=True)
+            st.download_button("BAIXAR DOSSIÊ COMPLETO", data=bytes(gerar_pdf(nome, idade, altura, peso, imc, objetivo, completo)), file_name=f"Dossie_{nome}.pdf")
 
-                    DADOS DO ALUNO:
-                    - Nome: {nome_aluno} | Idade: {idade_aluno} anos
-                    - Altura: {altura_aluno} cm | Peso: {peso_aluno} kg | IMC: {imc:.2f}
-
-                    ESTRUTURA OBRIGATÓRIA DO LAUDO:
-                    1. BIOTIPO (Heath-Carter): Identifique e explique intuitivamente entre parênteses.
-                    2. BF% E COMPOSIÇÃO: Estime a gordura corporal e explique o significado intuitivo entre parênteses.
-                    3. DIAGNÓSTICO POSTURAL: Analise simetria e postura baseada na foto, explicando entre parênteses.
-                    4. TREINO SEMANAL (Segunda a Domingo): 
-                       - Monte um treino preciso para a semana toda.
-                       - Para CADA exercício selecionado, inclua obrigatoriamente um campo 'OBSERVAÇÃO TÉCNICA' justificando a escolha baseada na idade, peso, altura e o que você viu na foto (ex: necessidade de correção postural, segurança articular ou foco em pontos fracos).
-
-                    Siga um tom estritamente profissional, analítico e pedagógico. 
-                    Use Markdown. Termos técnicos sempre acompanhados de tradução simples ao lado.
-                    """
-
-                    laudo_ia = None
-                    modelo_vencedor = "OFFLINE"
-
-                    for model_name in MODEL_FAILOVER_LIST:
-                        try:
-                            model = genai.GenerativeModel(model_name)
-                            response = model.generate_content([prompt_master, img_raw])
-                            laudo_ia = response.text
-                            modelo_vencedor = model_name
-                            break 
-                        except: continue 
-
-                    if laudo_ia:
-                        data_hora = time.strftime('%d/%m/%Y %H:%M')
-                        
-                        # Interface com CSS Blindado
-                        st.markdown(f"""
-                        <div class="result-card-unificado">
-                            <div style="text-align: right; font-size: 10px; color: #555; margin-bottom: 10px;">ENGINE: {modelo_vencedor.upper()}</div>
-                            {laudo_ia}
-                        </div>
-                        """, unsafe_allow_html=True)
-
-                        # --- GERAÇÃO DE PDF PROFISSIONAL ---
-                        pdf = FPDF()
-                        pdf.add_page()
-                        pdf.set_auto_page_break(auto=True, margin=15)
-                        
-                        # Cabeçalho
-                        pdf.set_font("Helvetica", "B", 16)
-                        pdf.cell(0, 10, "LAUDO DE CONSULTORIA BIOMECÂNICA", ln=True, align="C")
-                        pdf.set_font("Helvetica", "I", 8)
-                        pdf.cell(0, 5, f"TechnoBolt Gym Intelligence Hub - {data_hora}", ln=True, align="C")
-                        pdf.ln(10)
-                        
-                        # Identificação Aluno
-                        pdf.set_fill_color(30, 30, 30)
-                        pdf.set_text_color(59, 130, 246)
-                        pdf.set_font("Helvetica", "B", 11)
-                        pdf.cell(0, 8, f" IDENTIFICAÇÃO: {nome_aluno.upper()}", ln=True, fill=True)
-                        
-                        pdf.set_text_color(0, 0, 0)
-                        pdf.set_font("Helvetica", "", 10)
-                        pdf.cell(0, 8, f"Idade: {idade_aluno}a | Estatura: {altura_aluno}cm | Massa: {peso_aluno}kg | IMC: {imc:.2f}", ln=True, border='B')
-                        pdf.ln(5)
-
-                        # Texto Técnico (Tratamento de acentos Latin-1)
-                        pdf.set_font("Helvetica", "", 10)
-                        texto_limpo = laudo_ia.replace('#', '').replace('*', '').replace('>', '')
-                        pdf.multi_cell(0, 7, texto_limpo.encode('latin-1', 'replace').decode('latin-1'))
-
-                        pdf_output = pdf.output(dest='S')
-                        st.download_button(
-                            label="📥 BAIXAR RELATÓRIO PDF PROFISSIONAL",
-                            data=bytes(pdf_output),
-                            file_name=f"TechnoBolt_{nome_aluno.replace(' ', '_')}.pdf",
-                            mime="application/pdf"
-                        )
-                    else:
-                        st.error("⚠️ Falha crítica nos motores de Failover.")
-        except Exception as e:
-            st.error(f"Erro de processamento: {e}")
-    elif up and not nome_aluno:
-        st.warning("⚠️ Digite o nome do aluno antes de carregar a foto para evitar o reset da sessão.")
-
-st.markdown("---")
-st.caption(f"TechnoBolt Gym © 2026 | Operador: {st.session_state.user_atual.upper()}")
+    except Exception as e:
+        st.error(f"Erro: {e}")
+else:
+    st.info("Preecha os dados e anexe a foto na barra lateral.")
