@@ -143,8 +143,16 @@ st.markdown("<hr style='border-color: #333; margin-bottom:30px;'>", unsafe_allow
 # --- 6. MOTOR DE VISÃO COMPUTACIONAL (EDGE COMPUTING) ---
 class BiomecanicaProcessor(VideoTransformerBase):
     def __init__(self):
+        # Importação local para garantir que o erro seja capturado no log do Render
+        import mediapipe as mp
         self.mp_pose = mp.solutions.pose
-        self.pose = self.mp_pose.Pose(min_detection_confidence=0.65, min_tracking_confidence=0.65)
+        self.mp_drawing = mp.solutions.drawing_utils
+        
+        self.pose = self.mp_pose.Pose(
+            min_detection_confidence=0.5, 
+            min_tracking_confidence=0.5,
+            model_complexity=1 # Essencial para não estourar a RAM do Render
+        )
         self.count = 0
         self.stage = None
         self.precision = 0
@@ -154,38 +162,39 @@ class BiomecanicaProcessor(VideoTransformerBase):
     def transform(self, frame):
         img = frame.to_ndarray(format="bgr24")
         img = cv2.flip(img, 1)
-        results = self.pose.process(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        
+        # Converte para RGB para o MediaPipe
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        results = self.pose.process(img_rgb)
         
         with self._lock:
             if results.pose_landmarks:
                 lm = results.pose_landmarks.landmark
+                # Cálculo de precisão por visibilidade
                 self.precision = int(np.mean([l.visibility for l in lm]) * 100)
                 
-                # Lógica Biomecânica (Exemplo: Rosca Direta)
-                # Pontos 11(Ombro), 13(Cotovelo), 15(Pulso)
-                a = np.array([lm[11].x, lm[11].y])
-                b = np.array([lm[13].x, lm[13].y])
-                c = np.array([lm[15].x, lm[15].y])
+                # Exemplo: Pontos do Braço
+                p11, p13, p15 = lm[11], lm[13], lm[15]
+                a = np.array([p11.x, p11.y])
+                b = np.array([p13.x, p13.y])
+                c = np.array([p15.x, p15.y])
                 
                 rad = np.arctan2(c[1]-b[1], c[0]-b[0]) - np.arctan2(a[1]-b[1], a[0]-b[0])
                 ang = np.abs(rad * 180.0 / np.pi)
                 if ang > 180: ang = 360 - ang
 
-                # Validador de Repetições
                 if ang > 160: self.stage = "desc"
                 if ang < 35 and self.stage == "desc":
                     self.stage = "sub"
                     self.count += 1
                 
-                self.feedback = "Padrão Ouro" if self.precision > 80 else "Ajuste Enquadramento"
-                
-                mp.solutions.drawing_utils.draw_landmarks(
+                # Desenha os pontos (Skeleton)
+                self.mp_drawing.draw_landmarks(
                     img, results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS,
-                    mp.solutions.drawing_utils.DrawingSpec(color=(59, 130, 246), thickness=2, circle_radius=2)
+                    self.mp_drawing.DrawingSpec(color=(59, 130, 246), thickness=2, circle_radius=2)
                 )
             else:
                 self.precision = 0
-                self.feedback = "Corpo Não Identificado"
         return img
 
 # --- 7. MÓDULOS OPERACIONAIS ---
