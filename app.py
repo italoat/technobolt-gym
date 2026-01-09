@@ -10,15 +10,6 @@ import time
 import pandas as pd
 from PIL import Image, ImageStat
 
-api_key = os.environ.get("GEMINI_API_KEY")
-
-if not api_key:
-    # Se você estiver rodando localmente, ele tenta buscar do secrets.toml 
-    # Mas só chama se o arquivo existir, evitando o erro que você recebeu
-    try:
-        api_key = st.secrets["GEMINI_API_KEY"]
-    except:
-        api_key = None
 
 
 # --- 1. CONFIGURAÇÃO TECHNOBOLT LEGAL HUB ADAPTADA ---
@@ -252,44 +243,45 @@ elif escolha == "🏋️ Corretor Live":
 elif escolha == "📸 Bio-Análise":
     st.markdown('<div class="main-card"><h2>Bio-Análise Advanced</h2><p>Diagnóstico Antropométrico via Visão Computacional de Elite.</p></div>', unsafe_allow_html=True)
     
-    st.info("ℹ️ **Protocolo de Precisão:** Foto com roupas de compressão e luz natural lateral garantem 98% de precisão no nexo causal entre volume e definição.")
+    st.info("ℹ️ **Protocolo de Precisão:** Foto com roupas de compressão e luz natural lateral garantem 98% de precisão.")
     
     up = st.file_uploader("Upload de Imagem para Análise", type=['jpg', 'jpeg', 'png'])
     
     if up:
-        # 1. TRATAMENTO DE MEMÓRIA (Essencial para evitar Erro 502)
         img_raw = Image.open(up)
-        # Reduzimos a escala para otimizar o processamento sem perder nexo causal
         img_raw.thumbnail((1024, 1024)) 
         st.image(img_raw, use_container_width=True)
         
-        # Auditoria Técnica da Qualidade da Foto (PIL)
-        stat = ImageStat.Stat(img_raw)
-        brilho = stat.mean[0]
-        score_precisao = 98 if 75 < brilho < 180 else 64
-        
+        # Botão para disparar a análise
         if st.button("GERAR LAUDO E TREINO"):
-        # Busca a chave de forma segura
-        api_key = os.environ.get("GEMINI_API_KEY")
-        if not api_key:
-            try: api_key = st.secrets["GEMINI_API_KEY"]
-            except: pass
-
-        if not api_key:
-            st.error("⚠️ Chave API não encontrada. Configure a GEMINI_API_KEY no painel do Render.")
-            st.stop()
+            # O erro estava aqui: todas estas linhas devem estar alinhadas (indentadas)
+            import os
+            import google.generativeai as genai
             
-        genai.configure(api_key=api_key)
+            # Busca a chave de forma segura (Priorizando Environment Variables do Render)
+            api_key = os.environ.get("GEMINI_API_KEY")
+            
+            if not api_key:
+                try:
+                    api_key = st.secrets["GEMINI_API_KEY"]
+                except:
+                    api_key = None
 
-        with st.spinner("IA TechnoBolt executando Failover Pentacamada..."):
-            # Sua lista proprietária
-            MODEL_FAILOVER_LIST = [
-                "models/gemini-3-flash-preview", 
-                "models/gemini-2.5-flash", 
-                "models/gemini-2.0-flash", 
-                "models/gemini-2.0-flash-lite", 
-                "models/gemini-flash-latest"
-            ]
+            if not api_key:
+                st.error("⚠️ Chave API não configurada. Adicione GEMINI_API_KEY no painel Environment do Render.")
+                st.stop()
+            
+            genai.configure(api_key=api_key)
+
+            with st.spinner("IA TechnoBolt executando Failover Pentacamada..."):
+                MODEL_FAILOVER_LIST = [
+                    "models/gemini-3-flash-preview", 
+                    "models/gemini-2.5-flash", 
+                    "models/gemini-2.0-flash", 
+                    "models/gemini-2.0-flash-lite", 
+                    "models/gemini-flash-latest"
+                ]
+
                 laudo_ia = None
                 modelo_vencedor = "OFFLINE"
 
@@ -300,40 +292,36 @@ elif escolha == "📸 Bio-Análise":
                 2. COMPOSIÇÃO: Estime o BF% (Body Fat) pela densidade muscular.
                 3. POSTURA: Identifique desvios (ex: ombros protusos, inclinação pélvica).
                 4. TREINO SEMANAL: Gere um plano de 5 dias focado em pontos fracos vistos na foto.
-                
                 Siga o tom: Técnico, Analítico e Motivador. Use tabelas HTML para o treino.
                 """
 
-                # Loop de Failover Pentacamada
                 for model_name in MODEL_FAILOVER_LIST:
                     try:
                         model = genai.GenerativeModel(model_name)
-                        # Enviamos a imagem otimizada para evitar timeout
                         response = model.generate_content([prompt_tecnico, img_raw])
                         laudo_ia = response.text
                         modelo_vencedor = model_name
                         break 
-                    except Exception as e:
-                        # Log discreto para debug no Render
-                        print(f"Falha no modelo {model_name}: {str(e)}")
+                    except:
                         continue 
 
-                if not laudo_ia:
-                    st.error("⚠️ MOTORES DE IA FALHARAM: Verifique sua cota ou chave de API.")
-                else:
-                    # --- CARD DE RESULTADO ESTILO TECHNOBOLT LEGAL ---
+                if laudo_ia:
+                    # Cálculo de precisão de luz para o card
+                    stat = ImageStat.Stat(img_raw)
+                    brilho = stat.mean[0]
+                    score_precisao = 98 if 75 < brilho < 180 else 64
+                    
                     html_abertura = f"""
                     <div class="result-card-unificado">
                         <div class="result-title">DOSSIÊ ANTROPOMÉTRICO - {st.session_state.user_atual.upper()}</div>
                         <div style="color: #ffffff; line-height: 1.6; margin-top: 20px;">
                             <p style="background: #222; padding: 10px; border-radius: 5px; border-left: 4px solid #3b82f6;">
-                                <b>PRECISÃO DO DIAGNÓSTICO: {score_precisao}%</b> | <b>ENGINE: {modelo_vencedor.upper()}</b><br>
-                                <small>{"✅ Qualidade de imagem aprovada." if score_precisao > 80 else "⚠️ Alerta: Luz subótima."}</small>
+                                <b>PRECISÃO DO DIAGNÓSTICO: {score_precisao}%</b> | <b>ENGINE: {modelo_vencedor.upper()}</b>
                             </p>
                     """
-                    
-                    html_fechamento = "</div></div>"
-                    st.markdown(html_abertura + laudo_ia + html_fechamento, unsafe_allow_html=True)
+                    st.markdown(html_abertura + laudo_ia + "</div></div>", unsafe_allow_html=True)
+                else:
+                    st.error("⚠️ Todos os motores de IA falharam. Verifique sua cota ou conexão.")
 
 elif escolha == "📊 Histórico":
     st.markdown('<div class="main-card"><h2>Histórico</h2><p>Dossiê de evolução e auditoria de treinos.</p></div>', unsafe_allow_html=True)
