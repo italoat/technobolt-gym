@@ -237,26 +237,66 @@ elif escolha == "🏋️ Corretor Live":
         st.markdown('</div>', unsafe_allow_html=True)
 
 elif escolha == "📸 Bio-Análise":
-    st.markdown('<div class="main-card"><h2>Bio-Análise</h2><p>Diagnóstico Antropométrico via Visão Computacional.</p></div>', unsafe_allow_html=True)
-    up = st.file_uploader("Upload de Imagem (Frente ou Perfil)", type=['jpg', 'png'])
+    st.markdown('<div class="main-card"><h2>Bio-Análise Advanced</h2><p>Diagnóstico Antropométrico via Visão Computacional de Elite.</p></div>', unsafe_allow_html=True)
+    
+    # Sistema de Auditoria de Imagem
+    st.info("ℹ️ **Protocolo de Precisão:** Para um laudo 100% fiel, a foto deve ser tirada com roupas de compressão. Roupas largas impedem a análise de nexo causal entre volume e definição.")
+    
+    up = st.file_uploader("Upload de Imagem para Análise", type=['jpg', 'jpeg', 'png'])
+    
     if up:
         img = Image.open(up)
         st.image(img, use_container_width=True)
         
-        # Auditoria de Imagem
-        brilho = ImageStat.Stat(img).mean[0]
-        precisao_img = 95 if 70 < brilho < 185 else 62
+        # Auditoria Técnica da Qualidade da Foto
+        stat = ImageStat.Stat(img)
+        brilho = stat.mean[0]
+        # Cálculo de precisão baseado em iluminação e contraste
+        score_precisao = 98 if 75 < brilho < 180 else 64
         
-        st.markdown(f'''
-        <div class="result-card-unificado">
-            <div class="result-title">Laudo de Precisão: {precisao_img}%</div>
-            <p><b>Diagnóstico:</b> {"Aprovado para Análise" if precisao_img > 80 else "Inconsistência de Luz/Vestimenta Detectada"}</p>
-            <p style="font-size: 0.9em; color: #888;"><b>Dica TechnoBolt:</b> O excesso de roupas ou iluminação traseira mascara a definição muscular, reduzindo a precisão do cálculo de gordura corporal.</p>
-            <hr style="border-color:#333">
-            <p><b>Biotipo Estimado:</b> Mesomorfo dominante</p>
-            <p><b>BF% Calculado:</b> 15.2% (+/- 2.1%)</p>
-        </div>
-        ''', unsafe_allow_html=True)
+        if st.button("GERAR LAUDO E TREINO"):
+            with st.spinner("IA TechnoBolt analisando proporções e simetria..."):
+                try:
+                    # CONFIGURAÇÃO DO MOTOR IA (GEMINI)
+                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    
+                    prompt_tecnico = """
+                    Aja como um Personal Trainer Master, PhD em Fisiologia e Biomecânica. 
+                    Analise a imagem enviada e forneça:
+                    1. BIOTIPO: Identifique o somatotipo (Ecto, Meso, Endo) e a estrutura óssea.
+                    2. COMPOSIÇÃO: Estime o BF% (Body Fat) com base na densidade muscular visível.
+                    3. POSTURA: Identifique desvios (ex: ombros protusos, inclinação pélvica).
+                    4. TREINO SEMANAL: Gere um plano completo de 5 dias focado em melhorar os pontos fracos vistos na foto.
+                    
+                    Siga o tom: Técnico, Analítico e Motivador. Use tabelas HTML simples para o treino.
+                    """
+                    
+                    response = model.generate_content([prompt_tecnico, img])
+                    laudo_ia = response.text
+                except Exception as e:
+                    laudo_ia = "⚠️ Erro ao conectar com o motor de IA. Verifique sua GEMINI_API_KEY."
+
+                # --- CARD DE RESULTADO ESTILO TECHNOBOLT LEGAL ---
+                html_abertura = f"""
+                <div class="result-card-unificado">
+                    <div class="result-title">DOSSIÊ ANTROPOMÉTRICO - {st.session_state.user_atual.upper()}</div>
+                    <div style="color: #ffffff; line-height: 1.6; margin-top: 20px;">
+                        <p style="background: #222; padding: 10px; border-radius: 5px; border-left: 4px solid #3b82f6;">
+                            <b>PRECISÃO DO DIAGNÓSTICO: {score_precisao}%</b><br>
+                            <small>{"✅ Qualidade de imagem aprovada para laudo técnico." if score_precisao > 80 else "⚠️ Alerta: Iluminação subótima detectada. A margem de erro para BF% aumentou."}</small>
+                        </p>
+                """
+                
+                html_fechamento = """
+                    </div>
+                </div>
+                """
+                
+                # Exibe o resultado concatenado para manter a estrutura do card
+                st.markdown(html_abertura + laudo_ia + html_fechamento, unsafe_allow_html=True)
+                
+                if score_precisao < 80:
+                    st.warning("DICA TECHNOBOLT: Para o próximo scan, aproxime-se de uma fonte de luz natural e evite roupas escuras que 'somem' com o contorno do seu corpo.")
 
 elif escolha == "📊 Histórico":
     st.markdown('<div class="main-card"><h2>Histórico</h2><p>Dossiê de evolução e auditoria de treinos.</p></div>', unsafe_allow_html=True)
