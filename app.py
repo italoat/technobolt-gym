@@ -243,7 +243,7 @@ elif escolha == "🏋️ Corretor Live":
 elif escolha == "📸 Bio-Análise":
     st.markdown('<div class="main-card"><h2>Bio-Análise Advanced</h2><p>Diagnóstico Antropométrico via Visão Computacional de Elite.</p></div>', unsafe_allow_html=True)
     
-    st.info("ℹ️ **Protocolo de Precisão:** Foto com roupas de compressão e luz natural lateral garantem 98% de precisão.")
+    st.info("ℹ️ **Protocolo de Precisão:** A fidelidade do diagnóstico depende da visibilidade dos contornos musculares.")
     
     up = st.file_uploader("Upload de Imagem para Análise", type=['jpg', 'jpeg', 'png'])
     
@@ -252,28 +252,22 @@ elif escolha == "📸 Bio-Análise":
         img_raw.thumbnail((1024, 1024)) 
         st.image(img_raw, use_container_width=True)
         
-        # Botão para disparar a análise
         if st.button("GERAR LAUDO E TREINO"):
-            # O erro estava aqui: todas estas linhas devem estar alinhadas (indentadas)
             import os
             import google.generativeai as genai
             
-            # Busca a chave de forma segura (Priorizando Environment Variables do Render)
             api_key = os.environ.get("GEMINI_API_KEY")
-            
             if not api_key:
-                try:
-                    api_key = st.secrets["GEMINI_API_KEY"]
-                except:
-                    api_key = None
+                try: api_key = st.secrets["GEMINI_API_KEY"]
+                except: api_key = None
 
             if not api_key:
-                st.error("⚠️ Chave API não configurada. Adicione GEMINI_API_KEY no painel Environment do Render.")
+                st.error("⚠️ Chave API não configurada no Render.")
                 st.stop()
             
             genai.configure(api_key=api_key)
 
-            with st.spinner("IA TechnoBolt executando Failover Pentacamada..."):
+            with st.spinner("IA TechnoBolt analisando proporções..."):
                 MODEL_FAILOVER_LIST = [
                     "models/gemini-3-flash-preview", 
                     "models/gemini-2.5-flash", 
@@ -283,45 +277,49 @@ elif escolha == "📸 Bio-Análise":
                 ]
 
                 laudo_ia = None
-                modelo_vencedor = "OFFLINE"
-
-                prompt_tecnico = """
-                Aja como um Personal Trainer Master, PhD em Fisiologia e Biomecânica. 
-                Analise a imagem enviada e forneça:
-                1. BIOTIPO: Identifique o somatotipo (Ecto, Meso, Endo) baseado em Heath-Carter.
-                2. COMPOSIÇÃO: Estime o BF% (Body Fat) pela densidade muscular.
-                3. POSTURA: Identifique desvios (ex: ombros protusos, inclinação pélvica).
-                4. TREINO SEMANAL: Gere um plano de 5 dias focado em pontos fracos vistos na foto.
-                Siga o tom: Técnico, Analítico e Motivador. Use tabelas HTML para o treino.
-                """
-
                 for model_name in MODEL_FAILOVER_LIST:
                     try:
                         model = genai.GenerativeModel(model_name)
+                        # PROMPT REFINADO COM TRADUÇÃO INTUITIVA
+                        prompt_tecnico = """
+                        Aja como um Personal Trainer Master, PhD em Fisiologia. 
+                        Analise a imagem e forneça um laudo técnico formatado em Markdown.
+                        REGRA DE OURO: Para cada termo técnico ou científico usado, coloque imediatamente ao lado, 
+                        entre parênteses, uma explicação intuitiva e simples (linguagem de leigo).
+                        
+                        O laudo deve conter:
+                        1. BIOTIPO (Heath-Carter): (Explique o que isso significa para o ganho de massa/gordura).
+                        2. BF% ESTIMADO: (Explique se isso é bom ou o que representa no espelho).
+                        3. ANÁLISE POSTURAL: (Explique como isso afeta a dor ou a estética).
+                        4. PRESCRIÇÃO DE TREINO: Tabela Markdown com exercícios (Explique o objetivo de cada um).
+                        
+                        Siga um tom estritamente profissional, analítico e pedagógico.
+                        """
                         response = model.generate_content([prompt_tecnico, img_raw])
                         laudo_ia = response.text
-                        modelo_vencedor = model_name
                         break 
                     except:
                         continue 
 
                 if laudo_ia:
-                    # Cálculo de precisão de luz para o card
-                    stat = ImageStat.Stat(img_raw)
-                    brilho = stat.mean[0]
-                    score_precisao = 98 if 75 < brilho < 180 else 64
-                    
-                    html_abertura = f"""
-                    <div class="result-card-unificado">
-                        <div class="result-title">DOSSIÊ ANTROPOMÉTRICO - {st.session_state.user_atual.upper()}</div>
-                        <div style="color: #ffffff; line-height: 1.6; margin-top: 20px;">
-                            <p style="background: #222; padding: 10px; border-radius: 5px; border-left: 4px solid #3b82f6;">
-                                <b>PRECISÃO DO DIAGNÓSTICO: {score_precisao}%</b> | <b>ENGINE: {modelo_vencedor.upper()}</b>
-                            </p>
+                    # --- DESIGN PROFISSIONAL CLEAN ---
+                    html_clean = f"""
+                    <div class="result-card-unificado" style="border-top: 4px solid #3b82f6; margin-top: 30px;">
+                        <div style="text-align: right; font-size: 10px; color: #555; margin-bottom: 20px;">
+                            TECHNOBOLT GYM SOLUTIONS - RELATÓRIO TÉCNICO | {time.strftime('%d/%m/%Y %H:%M')}
+                        </div>
+                        <div style="color: #ffffff; line-height: 1.8; font-size: 15px;">
+                            {laudo_ia}
+                        </div>
+                        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #333; font-size: 11px; color: #888; text-align: center;">
+                            Este documento é uma análise algorítmica de nexo biomecânico. 
+                            Consulte sempre um profissional de educação física presencial.
+                        </div>
+                    </div>
                     """
-                    st.markdown(html_abertura + laudo_ia + "</div></div>", unsafe_allow_html=True)
+                    st.markdown(html_clean, unsafe_allow_html=True)
                 else:
-                    st.error("⚠️ Todos os motores de IA falharam. Verifique sua cota ou conexão.")
+                    st.error("⚠️ Falha na conexão com os motores de IA. Verifique sua quota de API.")
 
 elif escolha == "📊 Histórico":
     st.markdown('<div class="main-card"><h2>Histórico</h2><p>Dossiê de evolução e auditoria de treinos.</p></div>', unsafe_allow_html=True)
