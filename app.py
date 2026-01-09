@@ -13,9 +13,15 @@ st.set_page_config(page_title="TechnoBolt Gym Hub", layout="wide", page_icon="�
 # --- BANCO DE DADOS DE USUÁRIOS (RESTAURADO) ---
 # Substitua pelos seus usuários reais
 USUARIOS_DB = {
-    "admin": "bolt123",
-    "atleta": "gym2024",
-    "convidado": "techno"
+    "admin": "admin123",
+    "pedro.santana": "senha",
+    "luiza.trovao": "senha",
+    "anderson.bezerra": "senha",
+    "fabricio.felix": "senha",
+    "jackson.antonio": "senha",
+    "italo.trovao": "senha",
+    "julia.fernanda": "senha",
+    "convidado": "senha"
 }
 
 # --- ESTADO INICIAL ---
