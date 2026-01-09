@@ -243,127 +243,152 @@ elif escolha == "🏋️ Corretor Live":
 elif escolha == "📸 Bio-Análise":
     from fpdf import FPDF
     import io
+    from PIL import Image, ImageOps, ImageStat
 
     st.markdown('<div class="main-card"><h2>Consultoria Biomecânica Advanced</h2><p>Dossiê de elite com processamento em Failover Pentacamada.</p></div>', unsafe_allow_html=True)
     
-    with st.expander("📝 Dados do Aluno", expanded=True):
+    # --- FORMULÁRIO DE DADOS BIOMÉTRICOS ---
+    with st.expander("📝 Dados do Aluno (Necessário para Precisão)", expanded=True):
         c1, c2 = st.columns(2)
-        nome_aluno = c1.text_input("Nome Completo")
-        idade_aluno = c2.number_input("Idade", min_value=12, max_value=90, step=1)
+        nome_aluno = st.text_input("Nome Completo", placeholder="Ex: João Silva")
+        idade_aluno = st.number_input("Idade", min_value=12, max_value=90, step=1, value=25)
+        
         c3, c4 = st.columns(2)
-        altura_aluno = c3.number_input("Altura (cm)", value=170)
-        peso_aluno = c4.number_input("Peso Atual (kg)", value=75.0)
+        altura_aluno = st.number_input("Altura (cm)", min_value=100, max_value=250, step=1, value=170)
+        peso_aluno = st.number_input("Peso Atual (kg)", min_value=30.0, max_value=250.0, step=0.1, value=75.0)
 
+    st.info("ℹ️ **Protocolo TechnoBolt:** Envie uma foto com contornos visíveis. O sistema corrigirá a orientação automaticamente.")
+    
     up = st.file_uploader("Upload de Imagem para Diagnóstico", type=['jpg', 'jpeg', 'png'])
     
+    # --- CORREÇÃO DE CARREGAMENTO MOBILE ---
     if up and nome_aluno:
-        img_raw = Image.open(up)
-        img_raw.thumbnail((1024, 1024)) 
-        st.image(img_raw, use_container_width=True)
-        
-        if st.button("GERAR DOSSIÊ PDF"):
-            import os
-            import google.generativeai as genai
+        try:
+            # Abre a imagem, corrige orientação de celular (EXIF) e força RGB
+            img_input = Image.open(up)
+            img_raw = ImageOps.exif_transpose(img_input).convert("RGB")
             
-            api_key = os.environ.get("GEMINI_API_KEY") or (st.secrets["GEMINI_API_KEY"] if "GEMINI_API_KEY" in st.secrets else None)
-            if not api_key:
-                st.error("Chave API não configurada no Render.")
-                st.stop()
+            # Redimensionamento agressivo para evitar erro 502/Memory no Render
+            img_raw.thumbnail((800, 800), Image.Resampling.LANCZOS)
             
-            genai.configure(api_key=api_key)
-
-            with st.spinner("Executando Protocolo Pentacamada de Inteligência..."):
-                # --- RESTAURANDO SUA LISTA DE MOTORES PROPRIETÁRIA ---
-                MODEL_FAILOVER_LIST = [
-                    "models/gemini-3-flash-preview", 
-                    "models/gemini-2.5-flash", 
-                    "models/gemini-2.0-flash", 
-                    "models/gemini-2.0-flash-lite", 
-                    "models/gemini-flash-latest"
-                ]
-
-                imc = peso_aluno / ((altura_aluno/100)**2)
-
-                # Prompt Master Blindado contra lixo de texto da IA
-                prompt_master = f"""
-                Aja como um Personal Trainer Master PhD e Médico do Esporte. 
-                RETORNE APENAS O CONTEÚDO DO LAUDO TÉCNICO. PROIBIDO SAUDAÇÕES.
+            st.image(img_raw, use_container_width=True, caption=f"Dossiê Biométrico: {nome_aluno}")
+            
+            if st.button("GERAR DOSSIÊ PDF"):
+                import os
+                import google.generativeai as genai
                 
-                DADOS DO ALUNO: {nome_aluno}, {idade_aluno} anos, {altura_aluno}cm, {peso_aluno}kg, IMC {imc:.2f}.
+                # Busca API Key de forma blindada
+                api_key = os.environ.get("GEMINI_API_KEY")
+                if not api_key:
+                    try: api_key = st.secrets["GEMINI_API_KEY"]
+                    except: api_key = None
+
+                if not api_key:
+                    st.error("⚠️ Erro: Chave API não configurada no Render (Environment Variables).")
+                    st.stop()
                 
-                ESTRUTURA OBRIGATÓRIA:
-                1. BIOTIPO (Heath-Carter): Identifique e explique intuitivamente entre parênteses.
-                2. BF% E COMPOSIÇÃO: Estime a gordura corporal e explique entre parênteses.
-                3. DIAGNÓSTICO POSTURAL: Analise simetria e postura, explicando entre parênteses.
-                4. CRONOGRAMA SEMANAL (Segunda a Domingo): Para cada exercício, inclua uma 'OBSERVAÇÃO TÉCNICA' justificando a escolha baseada na idade, IMC e visual da foto.
-                
-                Use tom estritamente profissional e analítico.
-                """
+                genai.configure(api_key=api_key)
 
-                laudo_ia = None
-                modelo_vencedor = "OFFLINE"
+                with st.spinner(f"Executando Protocolo Pentacamada para {nome_aluno}..."):
+                    # --- SUA LISTA DE MOTORES PROPRIETÁRIA ---
+                    MODEL_FAILOVER_LIST = [
+                        "models/gemini-3-flash-preview", 
+                        "models/gemini-2.5-flash", 
+                        "models/gemini-2.0-flash", 
+                        "models/gemini-2.0-flash-lite", 
+                        "models/gemini-flash-latest"
+                    ]
 
-                # Execução do Failover
-                for model_name in MODEL_FAILOVER_LIST:
-                    try:
-                        model = genai.GenerativeModel(model_name)
-                        response = model.generate_content([prompt_master, img_raw])
-                        laudo_ia = response.text
-                        modelo_vencedor = model_name
-                        break 
-                    except: continue 
+                    imc = peso_aluno / ((altura_aluno/100)**2)
 
-                if laudo_ia:
-                    data_hora = time.strftime('%d/%m/%Y %H:%M')
-                    
-                    # Interface Visual (Card Technobolt)
-                    html_laudo = f"""
-                    <div class="result-card-unificado" style="border-top: 6px solid #3b82f6; background-color: #111;">
-                        <div style="text-align: right; font-size: 10px; color: #555;">ENGINE: {modelo_vencedor.upper()}</div>
-                        <div style="color: #ffffff; line-height: 1.8;">{laudo_ia}</div>
-                    </div>
+                    # PROMPT DE ELITE: Sem lixo, com tradução e justificativa técnica
+                    prompt_master = f"""
+                    Aja como um Personal Trainer Master PhD e Médico do Esporte.
+                    RETORNE APENAS O CONTEÚDO DO LAUDO TÉCNICO. PROIBIDO SAUDAÇÕES OU COMENTÁRIOS EXTRAS.
+
+                    DADOS DO ALUNO:
+                    - Nome: {nome_aluno} | Idade: {idade_aluno} anos
+                    - Altura: {altura_aluno} cm | Peso: {peso_aluno} kg | IMC: {imc:.2f}
+
+                    ESTRUTURA OBRIGATÓRIA DO LAUDO:
+                    1. BIOTIPO (Heath-Carter): Identifique e explique intuitivamente entre parênteses.
+                    2. BF% E COMPOSIÇÃO: Estime a gordura e explique o que significa no espelho entre parênteses.
+                    3. DIAGNÓSTICO POSTURAL: Analise simetria e postura baseada na foto, explicando entre parênteses.
+                    4. TREINO SEMANAL (Segunda a Domingo): 
+                       - Monte um treino preciso.
+                       - Para CADA exercício, inclua obrigatoriamente uma 'OBSERVAÇÃO TÉCNICA' justificando a escolha baseada na idade, peso, altura e o que foi visto na foto.
+
+                    Use Markdown. Termos técnicos sempre com tradução simples ao lado.
                     """
-                    st.markdown(html_laudo, unsafe_allow_html=True)
 
-                    # --- GERAÇÃO DE PDF PROFISSIONAL (CORREÇÃO DE ACENTOS) ---
-                    pdf = FPDF()
-                    pdf.add_page()
-                    pdf.set_auto_page_break(auto=True, margin=15)
-                    
-                    # Cabeçalho do PDF
-                    pdf.set_font("Helvetica", "B", 16)
-                    pdf.cell(0, 10, "LAUDO DE CONSULTORIA BIOMECÂNICA", ln=True, align="C")
-                    pdf.set_font("Helvetica", "I", 9)
-                    pdf.cell(0, 5, f"TechnoBolt Gym Intelligence Hub - {data_hora}", ln=True, align="C")
-                    pdf.ln(10)
-                    
-                    # Quadro de Dados Biométricos
-                    pdf.set_fill_color(30, 30, 30)
-                    pdf.set_text_color(59, 130, 246)
-                    pdf.set_font("Helvetica", "B", 11)
-                    pdf.cell(0, 8, f" IDENTIFICAÇÃO DO ALUNO: {nome_aluno.upper()}", ln=True, fill=True)
-                    
-                    pdf.set_text_color(0, 0, 0)
-                    pdf.set_font("Helvetica", "", 10)
-                    pdf.cell(0, 8, f"Idade: {idade_aluno} anos | Estatura: {altura_aluno}cm | Massa: {peso_aluno}kg | IMC: {imc:.2f}", ln=True, border='B')
-                    pdf.ln(5)
+                    laudo_ia = None
+                    modelo_vencedor = "OFFLINE"
 
-                    # Tratamento do texto para o PDF (Removendo Markdown e corrigindo caracteres)
-                    pdf.set_font("Helvetica", "", 10)
-                    texto_limpo = laudo_ia.replace('#', '').replace('*', '').replace('>', '')
-                    
-                    # Multi_cell com codificação segura para acentos
-                    pdf.multi_cell(0, 7, texto_limpo.encode('latin-1', 'replace').decode('latin-1'))
+                    # Loop de Failover Pentacamada
+                    for model_name in MODEL_FAILOVER_LIST:
+                        try:
+                            model = genai.GenerativeModel(model_name)
+                            response = model.generate_content([prompt_master, img_raw])
+                            laudo_ia = response.text
+                            modelo_vencedor = model_name
+                            break 
+                        except: continue 
 
-                    pdf_output = pdf.output(dest='S')
-                    st.download_button(
-                        label="📥 BAIXAR LAUDO PDF OFICIAL",
-                        data=bytes(pdf_output),
-                        file_name=f"Consultoria_Technobolt_{nome_aluno}.pdf",
-                        mime="application/pdf"
-                    )
-                else:
-                    st.error("⚠️ Falha crítica nos motores de Failover. Verifique sua chave de API.")
+                    if laudo_ia:
+                        data_hora = time.strftime('%d/%m/%Y %H:%M')
+                        
+                        # Exibição na Tela (Card Clean)
+                        st.markdown(f"""
+                        <div class="result-card-unificado" style="border-top: 6px solid #3b82f6; background-color: #111; padding: 25px;">
+                            <div style="text-align: right; font-size: 10px; color: #555;">ENGINE: {modelo_vencedor.upper()}</div>
+                            <div style="color: #ffffff; line-height: 1.8;">{laudo_ia}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                        # --- GERAÇÃO DE PDF PROFISSIONAL (CORREÇÃO DE ACENTOS) ---
+                        pdf = FPDF()
+                        pdf.add_page()
+                        pdf.set_auto_page_break(auto=True, margin=15)
+                        
+                        # Cabeçalho PDF
+                        pdf.set_font("Helvetica", "B", 16)
+                        pdf.cell(0, 10, "LAUDO DE CONSULTORIA BIOMECÂNICA", ln=True, align="C")
+                        pdf.set_font("Helvetica", "I", 9)
+                        pdf.cell(0, 5, f"TechnoBolt Gym Intelligence - {data_hora}", ln=True, align="C")
+                        pdf.ln(10)
+                        
+                        # Box de Dados do Aluno
+                        pdf.set_fill_color(30, 30, 30)
+                        pdf.set_text_color(59, 130, 246)
+                        pdf.set_font("Helvetica", "B", 11)
+                        pdf.cell(0, 8, f" IDENTIFICAÇÃO: {nome_aluno.upper()}", ln=True, fill=True)
+                        
+                        pdf.set_text_color(0, 0, 0)
+                        pdf.set_font("Helvetica", "", 10)
+                        pdf.cell(0, 8, f"Idade: {idade_aluno}a | Altura: {altura_aluno}cm | Peso: {peso_aluno}kg | IMC: {imc:.2f}", ln=True, border='B')
+                        pdf.ln(5)
+
+                        # Conteúdo Técnico (Limpando Markdown e formatando acentos)
+                        pdf.set_font("Helvetica", "", 10)
+                        texto_limpo = laudo_ia.replace('#', '').replace('*', '').replace('>', '')
+                        
+                        # Codificação latin-1 para evitar símbolos estranhos nos acentos
+                        pdf.multi_cell(0, 7, texto_limpo.encode('latin-1', 'replace').decode('latin-1'))
+
+                        pdf_output = pdf.output(dest='S')
+                        st.download_button(
+                            label="📥 BAIXAR RELATÓRIO PDF PROFISSIONAL",
+                            data=bytes(pdf_output),
+                            file_name=f"TechnoBolt_{nome_aluno.replace(' ', '_')}.pdf",
+                            mime="application/pdf"
+                        )
+                    else:
+                        st.error("⚠️ Todos os motores de IA falharam. Verifique sua GEMINI_API_KEY.")
+        except Exception as e:
+            st.error(f"Erro ao processar imagem: {e}. Tente uma foto mais leve ou print da galeria.")
+            
+    elif up and not nome_aluno:
+        st.warning("⚠️ Preencha o Nome do Aluno para habilitar o processamento.")
 
 st.markdown("---")
 st.caption(f"TechnoBolt Gym © 2026 | Operador: {st.session_state.user_atual.upper()}")
