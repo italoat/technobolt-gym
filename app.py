@@ -246,18 +246,29 @@ elif escolha == "📸 Bio-Análise":
     up = st.file_uploader("Upload de Imagem para Análise", type=['jpg', 'jpeg', 'png'])
     
     if up:
-        img = Image.open(up)
-        st.image(img, use_container_width=True)
+        # 1. TRATAMENTO DE MEMÓRIA (Essencial para evitar Erro 502)
+        img_raw = Image.open(up)
+        # Reduzimos a escala para otimizar o processamento sem perder nexo causal
+        img_raw.thumbnail((1024, 1024)) 
+        st.image(img_raw, use_container_width=True)
         
         # Auditoria Técnica da Qualidade da Foto (PIL)
-        stat = ImageStat.Stat(img)
+        stat = ImageStat.Stat(img_raw)
         brilho = stat.mean[0]
         score_precisao = 98 if 75 < brilho < 180 else 64
         
         if st.button("GERAR LAUDO E TREINO"):
+            # --- INICIALIZAÇÃO DA API ---
+            api_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
+            if not api_key:
+                st.error("Chave API não configurada no Render (Environment Variables).")
+                st.stop()
+            
+            genai.configure(api_key=api_key)
+
             with st.spinner("IA TechnoBolt executando Failover Pentacamada..."):
                 
-                # --- LISTA DE FAILOVER TECHNOBOLT ---
+                # --- SUA LISTA DE MOTORES PROPRIETÁRIA ---
                 MODEL_FAILOVER_LIST = [
                     "models/gemini-3-flash-preview", 
                     "models/gemini-2.5-flash", 
@@ -272,48 +283,44 @@ elif escolha == "📸 Bio-Análise":
                 prompt_tecnico = """
                 Aja como um Personal Trainer Master, PhD em Fisiologia e Biomecânica. 
                 Analise a imagem enviada e forneça:
-                1. BIOTIPO: Identifique o somatotipo (Ecto, Meso, Endo) e a estrutura óssea.
-                2. COMPOSIÇÃO: Estime o BF% (Body Fat) com base na densidade muscular visível.
+                1. BIOTIPO: Identifique o somatotipo (Ecto, Meso, Endo) baseado em Heath-Carter.
+                2. COMPOSIÇÃO: Estime o BF% (Body Fat) pela densidade muscular.
                 3. POSTURA: Identifique desvios (ex: ombros protusos, inclinação pélvica).
-                4. TREINO SEMANAL: Gere um plano completo de 5 dias focado em melhorar os pontos fracos vistos na foto.
+                4. TREINO SEMANAL: Gere um plano de 5 dias focado em pontos fracos vistos na foto.
                 
-                Siga o tom: Técnico, Analítico e Motivador. Use tabelas HTML simples para o treino.
+                Siga o tom: Técnico, Analítico e Motivador. Use tabelas HTML para o treino.
                 """
 
                 # Loop de Failover Pentacamada
                 for model_name in MODEL_FAILOVER_LIST:
                     try:
                         model = genai.GenerativeModel(model_name)
-                        response = model.generate_content([prompt_tecnico, img])
+                        # Enviamos a imagem otimizada para evitar timeout
+                        response = model.generate_content([prompt_tecnico, img_raw])
                         laudo_ia = response.text
                         modelo_vencedor = model_name
-                        break # Sucesso, sai do loop
+                        break 
                     except Exception as e:
-                        continue # Falhou, tenta o próximo modelo da lista
+                        # Log discreto para debug no Render
+                        print(f"Falha no modelo {model_name}: {str(e)}")
+                        continue 
 
                 if not laudo_ia:
-                    laudo_ia = "⚠️ MOTORES DE IA INDISPONÍVEIS. Tente novamente em instantes."
-
-                # --- CARD DE RESULTADO ESTILO TECHNOBOLT LEGAL ---
-                html_abertura = f"""
-                <div class="result-card-unificado">
-                    <div class="result-title">DOSSIÊ ANTROPOMÉTRICO - {st.session_state.user_atual.upper()}</div>
-                    <div style="color: #ffffff; line-height: 1.6; margin-top: 20px;">
-                        <p style="background: #222; padding: 10px; border-radius: 5px; border-left: 4px solid #3b82f6;">
-                            <b>PRECISÃO DO DIAGNÓSTICO: {score_precisao}%</b> | <b>ENGINE: {modelo_vencedor.upper()}</b><br>
-                            <small>{"✅ Qualidade de imagem aprovada para laudo técnico." if score_precisao > 80 else "⚠️ Alerta: Iluminação subótima detectada."}</small>
-                        </p>
-                """
-                
-                html_fechamento = """
-                    </div>
-                </div>
-                """
-                
-                st.markdown(html_abertura + laudo_ia + html_fechamento, unsafe_allow_html=True)
-                
-                if score_precisao < 80:
-                    st.warning("DICA TECHNOBOLT: Para o próximo scan, aproxime-se de uma fonte de luz natural lateral.")
+                    st.error("⚠️ MOTORES DE IA FALHARAM: Verifique sua cota ou chave de API.")
+                else:
+                    # --- CARD DE RESULTADO ESTILO TECHNOBOLT LEGAL ---
+                    html_abertura = f"""
+                    <div class="result-card-unificado">
+                        <div class="result-title">DOSSIÊ ANTROPOMÉTRICO - {st.session_state.user_atual.upper()}</div>
+                        <div style="color: #ffffff; line-height: 1.6; margin-top: 20px;">
+                            <p style="background: #222; padding: 10px; border-radius: 5px; border-left: 4px solid #3b82f6;">
+                                <b>PRECISÃO DO DIAGNÓSTICO: {score_precisao}%</b> | <b>ENGINE: {modelo_vencedor.upper()}</b><br>
+                                <small>{"✅ Qualidade de imagem aprovada." if score_precisao > 80 else "⚠️ Alerta: Luz subótima."}</small>
+                            </p>
+                    """
+                    
+                    html_fechamento = "</div></div>"
+                    st.markdown(html_abertura + laudo_ia + html_fechamento, unsafe_allow_html=True)
 
 elif escolha == "📊 Histórico":
     st.markdown('<div class="main-card"><h2>Histórico</h2><p>Dossiê de evolução e auditoria de treinos.</p></div>', unsafe_allow_html=True)
