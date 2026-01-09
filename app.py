@@ -14,63 +14,65 @@ st.set_page_config(page_title="TechnoBolt Gym Hub", layout="wide", page_icon="�
 # --- DESIGN SYSTEM TECHNOBOLT (BLACK & GRAY ELITE) ---
 st.markdown("""
 <style>
-    /* 1. FUNDO PRETO TOTAL E FONTES BRANCAS */
-    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"] {
-        background-color: #000000 !important;
-    }
-    html, body, [class*="st-"] { color: #ffffff !important; font-family: 'Inter', sans-serif; }
-    h1, h2, h3, p, span, label, li { color: #ffffff !important; }
+    /* 1. FUNDO PRETO E FONTES BRANCAS (BLINDADO) */
+    .stApp { background-color: #000000 !important; color: #ffffff !important; }
+    [data-testid="stHeader"], [data-testid="stSidebar"] { background-color: #000000 !important; }
+    html, body, [class*="st-"] { font-family: 'Inter', sans-serif; }
+    h1, h2, h3, p, span, label { color: #ffffff !important; }
 
-    /* 2. BOTÕES PRINCIPAIS (Login e Downloads) - CINZA ESCURO */
+    /* 2. BOTÕES DE AÇÃO (Login e PDF) - Sem deformar botões internos */
     .stButton > button, .stDownloadButton > button {
         background-color: #333333 !important;
         color: #ffffff !important;
         border: 1px solid #444 !important;
-        border-radius: 10px !important;
+        border-radius: 12px !important;
         min-height: 50px !important;
         width: 100% !important;
-        font-weight: bold !important;
+        font-weight: 700 !important;
         text-transform: uppercase;
-        margin-top: 10px !important;
         transition: 0.3s;
     }
     .stButton > button:hover { background-color: #3b82f6 !important; border-color: #3b82f6 !important; }
 
-    /* 3. CORREÇÃO DOS BOTÕES DE CONTROLE (+ / -) E ÍCONE DO OLHO */
-    button[kind="secondary"] {
-        min-height: auto !important;
-        width: auto !important;
+    /* 3. FIX: SETA DA BARRA LATERAL E ÍCONES INTERNOS */
+    /* Impede que o CSS force texto branco em cima de ícones do sistema */
+    button[data-testid="stSidebarCollapseButton"] svg, 
+    button[kind="secondary"] svg {
+        fill: #3b82f6 !important; /* Deixa a seta azul para destaque */
+    }
+    
+    /* Remove a borda e o fundo cinza que deformam a seta */
+    button[data-testid="stSidebarCollapseButton"] {
         background-color: transparent !important;
         border: none !important;
-    }
-    [data-testid="stTextInputPasswordVisibility"] {
-        right: 10px !important;
-        height: 100% !important;
-        display: flex !important;
-        align-items: center !important;
+        box-shadow: none !important;
     }
 
-    /* 4. CAMPOS DE ENTRADA E SELECTS */
-    input, div[data-baseweb="select"] > div, [data-testid="stFileUploader"] {
-        background-color: #1a1a1a !important;
+    /* 4. FIX: BOTÃO DO OLHO E CONTROLES (+ / -) */
+    div[data-testid="stTextInputPasswordVisibility"] button,
+    div[data-testid="stNumberInputStepUp"] button,
+    div[data-testid="stNumberInputStepDown"] button {
+        background-color: transparent !important;
+        border: none !important;
+        width: auto !important;
+        min-height: auto !important;
+        color: #3b82f6 !important;
+    }
+
+    /* 5. INPUTS E CARDS */
+    input, div[data-baseweb="select"] > div {
+        background-color: #111111 !important;
         color: white !important;
-        border: 1px solid #333 !important;
+        border: 1px solid #222 !important;
     }
-
-    /* 5. CARDS DE RESULTADO TECHNOBOLT */
     .result-card-unificado { 
-        background-color: #111111 !important; 
-        border-top: 6px solid #3b82f6;
+        background-color: #0a0a0a !important; 
+        border-left: 6px solid #3b82f6;
         border-radius: 15px;
         padding: 25px;
-        box-shadow: 0 10px 30px rgba(0,0,0,1);
-        line-height: 1.8;
+        margin-top: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.8);
     }
-    
-    .stTabs [aria-selected="true"] { background-color: #333 !important; color: white !important; border-radius: 5px !important; }
-    
-    @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-    .scanning-text { color:#3b82f6; letter-spacing: 2px; animation: blink 1.5s infinite; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -225,3 +227,20 @@ if up and nome_perfil:
             st.download_button("📥 BAIXAR RELATÓRIO COMPLETO (PDF)", data=gerar_pdf_elite(nome_perfil, idade, altura, peso, imc, objetivo, dossie_completo, "Dossiê Completo"), file_name=f"Dossie_{nome_perfil}.pdf")
 
     except Exception as e: st.error(f"Erro no processamento: {e}")
+else:
+    st.markdown("""
+        <div class="result-card-unificado" style="text-align:center; border-top: 2px solid #333;">
+            <div style="font-size: 50px; margin-bottom: 20px;">👤</div>
+            <h2 style="color:#3b82f6; letter-spacing: 2px;">SISTEMA EM ESPERA</h2>
+            <p style="color:#888; font-size:16px;">Aguardando entrada de dados biométricos para iniciar o protocolo.</p>
+            <div style="background:#000; padding:15px; border-radius:10px; margin-top:20px; border: 1px dashed #3b82f6;">
+                <p style="margin:0; font-size:14px; color:#fff;">
+                    <b>INSTRUÇÕES TECHNOBOLT:</b><br><br>
+                    1. Utilize o <b>Painel Lateral</b> para inserir seus dados biométricos.<br>
+                    2. Selecione seu <b>Objetivo Principal</b> (Hipertrofia, Lipólise, etc).<br>
+                    3. Faça o upload da <b>Foto de Bio-Análise</b>.<br><br>
+                    <i>O scanner PhD será ativado instantaneamente após o upload.</i>
+                </p>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
