@@ -32,49 +32,61 @@ if "user_atual" not in st.session_state:
 # --- DESIGN SYSTEM TECHNOBOLT (Blindado para iPhone/Android/PC) ---
 st.markdown("""
 <style>
-    /* --- BLINDAGEM TOTAL DE BOTÕES --- */
-    
-    /* Botão Padrão e Botão de Download */
-    button, .stButton>button, .stDownloadButton>button {
-        background-color: #3b82f6 !important; /* Azul TechnoBolt */
+    /* 1. FUNDO PRETO ABSOLUTO EM TUDO */
+    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"] {
+        background-color: #000000 !important;
+    }
+
+    /* 2. FONTES BRANCAS GLOBAIS */
+    html, body, [class*="st-"] {
         color: #ffffff !important;
-        border-radius: 8px !important;
-        border: none !important;
-        padding: 10px 24px !important;
-        font-weight: bold !important;
-        transition: all 0.3s ease !important;
-        width: 100% !important; /* Faz o botão ocupar a largura disponível no mobile */
-        margin-bottom: 10px !important;
-    }
-
-    /* Efeito de Hover (Passar o mouse) */
-    button:hover, .stButton>button:hover, .stDownloadButton>button:hover {
-        background-color: #2563eb !important; /* Azul mais escuro no hover */
-        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4) !important;
-        transform: translateY(-2px) !important;
-    }
-
-    /* Botões dentro da Barra Lateral (Sidebar) */
-    [data-testid="stSidebar"] button {
-        background-color: #222 !important;
-        border: 1px solid #3b82f6 !important;
+        font-family: 'Inter', sans-serif;
     }
     
-    [data-testid="stSidebar"] button:hover {
-        background-color: #3b82f6 !important;
+    h1, h2, h3, p, span, label, li {
+        color: #ffffff !important;
     }
 
-    /* Ajuste para o texto não sumir em botões brancos residuais */
-    .stBaseButton-secondary {
-        background-color: #222 !important;
-        color: white !important;
+    /* 3. BOTÕES CINZA ESCURO */
+    button, .stButton>button, .stDownloadButton>button {
+        background-color: #333333 !important; /* Cinza Escuro */
+        color: #ffffff !important;
+        border: 1px solid #444 !important;
+        border-radius: 10px !important;
+        height: 50px !important;
+        width: 100% !important;
+        font-weight: bold !important;
+        text-transform: uppercase;
+        transition: 0.3s;
     }
 
-    /* Forçar ícones dentro de botões a serem brancos */
-    button p, button svg {
-        color: white !important;
-        fill: white !important;
+    button:hover, .stButton>button:hover {
+        background-color: #444444 !important;
+        border-color: #3b82f6 !important; /* Brilho azul TechnoBolt no hover */
     }
+
+    /* 4. CAMPOS DE ENTRADA (INPUTS) PRETO/CINZA */
+    input, [data-baseweb="input"], [data-baseweb="select"] {
+        background-color: #1a1a1a !important;
+        color: white !important;
+        border: 1px solid #333 !important;
+    }
+
+    /* 5. CARDS DE RESULTADO (BIO-ANÁLISE) */
+    .result-card-unificado { 
+        background-color: #111111 !important; 
+        color: #ffffff !important; 
+        padding: 25px; 
+        border-radius: 15px; 
+        border-top: 6px solid #3b82f6; 
+        margin-top: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,1);
+    }
+
+    /* 6. AJUSTE DAS ABAS (TABS) */
+    .stTabs [data-baseweb="tab-list"] { background-color: #000 !important; }
+    .stTabs [data-baseweb="tab"] { color: #888 !important; }
+    .stTabs [aria-selected="true"] { background-color: #333 !important; color: white !important; border-bottom: 3px solid #3b82f6 !important; }
 </style>
 """, unsafe_allow_html=True)
 
