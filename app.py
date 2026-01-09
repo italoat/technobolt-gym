@@ -10,17 +10,15 @@ from fpdf import FPDF
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="TechnoBolt Gym Hub", layout="wide", page_icon="🏋️")
 
-# --- DESIGN SYSTEM TECHNOBOLT (BLACK & GRAY - ANTI-DEFORMAÇÃO) ---
+# --- DESIGN SYSTEM TECHNOBOLT (BLACK & GRAY) ---
 st.markdown("""
 <style>
-    /* 1. FUNDO PRETO TOTAL E FONTES BRANCAS */
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"] {
         background-color: #000000 !important;
     }
     html, body, [class*="st-"] { color: #ffffff !important; }
     h1, h2, h3, p, span, label, li { color: #ffffff !important; }
 
-    /* 2. BOTÕES PRINCIPAIS (Login e Downloads) - CINZA ESCURO */
     .stButton > button, .stDownloadButton > button {
         background-color: #333333 !important;
         color: #ffffff !important;
@@ -34,7 +32,6 @@ st.markdown("""
         transition: 0.3s;
     }
 
-    /* 3. CORREÇÃO DOS BOTÕES DE CONTROLE (+ / -) E ÍCONE DO OLHO */
     button[kind="secondary"] {
         min-height: auto !important;
         width: auto !important;
@@ -48,20 +45,13 @@ st.markdown("""
         display: flex !important;
         align-items: center !important;
     }
-    
-    [data-testid="stTextInputPasswordVisibility"] button {
-        padding: 0 !important;
-        margin: 0 !important;
-    }
 
-    /* 4. CAMPOS DE ENTRADA E SELECTS - PRETO/CINZA */
     input, div[data-baseweb="select"] > div, [data-testid="stFileUploader"] {
         background-color: #1a1a1a !important;
         color: white !important;
         border: 1px solid #333 !important;
     }
 
-    /* 5. CARDS DE RESULTADO */
     .result-card-unificado { 
         background-color: #111111 !important; 
         border-top: 6px solid #3b82f6;
@@ -74,7 +64,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- BANCO DE DADOS DE USUÁRIOS ---
+# --- USUÁRIOS ---
 USUARIOS_DB = {
     "admin": "admin123", "pedro.santana": "senha", "luiza.trovao": "senha",
     "anderson.bezerra": "senha", "fabricio.felix": "senha", "jackson.antonio": "senha",
@@ -84,7 +74,7 @@ USUARIOS_DB = {
 if "logado" not in st.session_state: st.session_state.logado = False
 if "user_atual" not in st.session_state: st.session_state.user_atual = ""
 
-# --- TELA DE LOGIN ---
+# --- LOGIN ---
 if not st.session_state.logado:
     st.markdown('<div class="main-card"><h1>TechnoBolt Gym</h1><p>Acesse sua Consultoria de Elite</p></div>', unsafe_allow_html=True)
     u = st.text_input("Usuário")
@@ -97,7 +87,7 @@ if not st.session_state.logado:
         else: st.error("Credenciais inválidas.")
     st.stop()
 
-# --- FUNÇÃO DE GERAÇÃO DE PDF ---
+# --- GERAÇÃO DE PDF ---
 def gerar_pdf(nome, idade, altura, peso, imc, objetivo, conteudo, titulo):
     pdf = FPDF()
     pdf.add_page()
@@ -120,7 +110,6 @@ with st.sidebar:
         st.session_state.logado = False
         st.rerun()
     st.divider()
-    st.subheader("📋 Perfil Biométrico")
     nome_perfil = st.text_input("Nome Completo", value=st.session_state.user_atual.replace('.', ' ').capitalize())
     idade = st.number_input("Idade", 12, 90, 25)
     altura = st.number_input("Altura (cm)", 100, 250, 170)
@@ -128,7 +117,7 @@ with st.sidebar:
     objetivo = st.selectbox("Objetivo Principal", ["Hipertrofia", "Lipólise", "Performance", "Postural"])
     up = st.file_uploader("📸 Foto Bio Análise", type=['jpg', 'png', 'jpeg'])
 
-# --- PROCESSAMENTO COM SEUS MOTORES ORIGINAIS ---
+# --- PROCESSAMENTO (COM MOTOR DE SEGURANÇA) ---
 if up and nome_perfil:
     try:
         bytes_data = up.getvalue()
@@ -138,32 +127,28 @@ if up and nome_perfil:
         
         imc = peso / ((altura/100)**2)
         api_key = os.environ.get("GEMINI_API_KEY") or (st.secrets["GEMINI_API_KEY"] if "GEMINI_API_KEY" in st.secrets else None)
-        if not api_key: st.error("API Key não encontrada."); st.stop()
+        if not api_key: st.stop()
         genai.configure(api_key=api_key)
 
-        # REPOSIÇÃO DOS SEUS MOTORES ESPECÍFICOS
         MODEL_FAILOVER_LIST = [
-            "models/gemini-3-flash-preview", 
-            "models/gemini-2.5-flash", 
             "models/gemini-2.0-flash", 
-            "models/gemini-2.0-flash-lite", 
-            "models/gemini-flash-latest"
+            "models/gemini-1.5-flash", 
+            "models/gemini-1.5-flash-8b",
+            "models/gemini-1.5-pro"
         ]
 
         def processar_ia(prompt):
-    erros = []
-    for model_name in MODEL_FAILOVER_LIST:
-        try:
-            model = genai.GenerativeModel(model_name)
-            # Adicionamos um timeout e configurações de segurança mais flexíveis
-            response = model.generate_content([prompt, img_raw])
-            return response.text, model_name
-        except Exception as e:
-            erros.append(f"{model_name}: {str(e)}")
-            continue
-    return f"Erro nos motores. Detalhes: {'; '.join(erros)}", "OFFLINE
+            erros = []
+            for model_name in MODEL_FAILOVER_LIST:
+                try:
+                    model = genai.GenerativeModel(model_name)
+                    response = model.generate_content([prompt, img_raw])
+                    return response.text, model_name
+                except Exception as e:
+                    erros.append(str(e))
+                    continue
+            return f"Erro nos motores. Detalhes: {'; '.join(erros)}", "OFFLINE"
 
-        # --- POPUP DE SCANNER ---
         with st.empty():
             gif_url = "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJqZ3R3bmZ3bmZ3bmZ3bmZ3bmZ3bmZ3bmZ3bmZ3bmZ3bmZ3JlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKMGpxx303Z3o9G/giphy.gif"
             st.markdown(f"""
@@ -175,15 +160,21 @@ if up and nome_perfil:
                 <style>@keyframes blink {{ 0% {{ opacity: 1; }} 50% {{ opacity: 0.3; }} 100% {{ opacity: 1; }} }}</style>
             """, unsafe_allow_html=True)
 
+            # --- SEQUÊNCIA COM PAUSAS PARA EVITAR BLOQUEIO (ERROR 429) ---
             r1, e1 = processar_ia(f"RETORNE APENAS CONTEÚDO TÉCNICO. PhD em Antropometria. Analise {nome_perfil}, {idade}a, IMC {imc:.2f}. Biotipo, BF%, Postura. Use parênteses para intuitivo.")
+            time.sleep(2) # Respiro para a API
+            
             r2, e2 = processar_ia(f"RETORNE APENAS CONTEÚDO TÉCNICO. Nutricionista PhD. Objetivo {objetivo}. GET, Macros e Dieta. Use parênteses.")
+            time.sleep(2)
+            
             r3, e3 = processar_ia(f"RETORNE APENAS CONTEÚDO TÉCNICO. Suplementação Esportiva. 3 suplementos p/ {objetivo}. Use parênteses.")
+            time.sleep(2)
+            
             r4, e4 = processar_ia(f"RETORNE APENAS CONTEÚDO TÉCNICO. Personal Trainer PhD. Treino 7 dias p/ {objetivo}. Justificativa e Substitutos. Use parênteses.")
             
             time.sleep(1)
             st.empty()
 
-        # --- EXIBIÇÃO EM ABAS ---
         tabs = st.tabs(["📊 Avaliação", "🥗 Nutrição", "💊 Suplementos", "🏋️ Treino", "📜 Completo"])
 
         with tabs[0]:
@@ -200,10 +191,10 @@ if up and nome_perfil:
             st.download_button("📥 PDF Treino", data=bytes(gerar_pdf(nome_perfil, idade, altura, peso, imc, objetivo, r4, "TREINO")), file_name="Treino.pdf")
         with tabs[4]:
             full = f"# AVALIAÇÃO\n{r1}\n\n# NUTRIÇÃO\n{r2}\n\n# SUPLEMENTOS\n{r3}\n\n# TREINO\n{r4}"
-            st.markdown(f'<div class="result-card-unificado"><div class="engine-tag">DOSSIÊ TECHNOBOLT</div>{full}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="result-card-unificado">{full}</div>', unsafe_allow_html=True)
             st.download_button("📥 BAIXAR DOSSIÊ", data=bytes(gerar_pdf(nome_perfil, idade, altura, peso, imc, objetivo, full, "DOSSIÊ")), file_name=f"Relatorio_{nome_perfil}.pdf")
 
     except Exception as e:
         st.error(f"Erro Crítico: {e}")
 else:
-    st.info("Complete seu perfil e anexe a foto na barra lateral para iniciar o escaneamento.")
+    st.info("Complete seu perfil e anexe a foto na barra lateral.")
