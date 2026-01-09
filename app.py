@@ -241,33 +241,38 @@ elif escolha == "🏋️ Corretor Live":
         st.markdown('</div>', unsafe_allow_html=True)
 
 elif escolha == "📸 Bio-Análise":
-    st.markdown('<div class="main-card"><h2>Bio-Análise Advanced</h2><p>Diagnóstico Antropométrico via Visão Computacional de Elite.</p></div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-card"><h2>Consultoria Biomecânica Advanced</h2><p>Análise de nexo causal baseada em dados biométricos e visão computacional.</p></div>', unsafe_allow_html=True)
     
-    st.info("ℹ️ **Protocolo de Precisão:** A fidelidade do diagnóstico depende da visibilidade dos contornos musculares.")
+    # --- FORMULÁRIO DE DADOS BIOMÉTRICOS ---
+    with st.expander("📝 Dados do Aluno (Necessário para Precisão)", expanded=True):
+        c1, c2 = st.columns(2)
+        nome_aluno = c1.text_input("Nome Completo", placeholder="Ex: João Silva")
+        idade_aluno = c2.number_input("Idade", min_value=12, max_value=90, step=1)
+        
+        c3, c4 = st.columns(2)
+        altura_aluno = c3.number_input("Altura (cm)", min_value=100, max_value=250, step=1, value=170)
+        peso_aluno = c4.number_input("Peso Atual (kg)", min_value=30.0, max_value=250.0, step=0.1, value=75.0)
+
+    st.info("ℹ️ **Protocolo TechnoBolt:** Envie uma foto com contornos visíveis para análise de simetria e somatotipo.")
+    up = st.file_uploader("Upload de Imagem para Diagnóstico", type=['jpg', 'jpeg', 'png'])
     
-    up = st.file_uploader("Upload de Imagem para Análise", type=['jpg', 'jpeg', 'png'])
-    
-    if up:
+    if up and nome_aluno:
         img_raw = Image.open(up)
         img_raw.thumbnail((1024, 1024)) 
-        st.image(img_raw, use_container_width=True)
+        st.image(img_raw, use_container_width=True, caption=f"Análise Biométrica: {nome_aluno}")
         
-        if st.button("GERAR LAUDO E TREINO"):
+        if st.button("GERAR DOSSIÊ COMPLETO"):
             import os
             import google.generativeai as genai
             
-            api_key = os.environ.get("GEMINI_API_KEY")
+            api_key = os.environ.get("GEMINI_API_KEY") or (st.secrets["GEMINI_API_KEY"] if "GEMINI_API_KEY" in st.secrets else None)
             if not api_key:
-                try: api_key = st.secrets["GEMINI_API_KEY"]
-                except: api_key = None
-
-            if not api_key:
-                st.error("⚠️ Chave API não configurada no Render.")
+                st.error("⚠️ Erro: Chave API não configurada.")
                 st.stop()
             
             genai.configure(api_key=api_key)
 
-            with st.spinner("IA TechnoBolt analisando proporções..."):
+            with st.spinner(f"Processando dados de {nome_aluno} via Failover Pentacamada..."):
                 MODEL_FAILOVER_LIST = [
                     "models/gemini-3-flash-preview", 
                     "models/gemini-2.5-flash", 
@@ -276,54 +281,74 @@ elif escolha == "📸 Bio-Análise":
                     "models/gemini-flash-latest"
                 ]
 
+                imc = peso_aluno / ((altura_aluno/100)**2)
+
+                # PROMPT DE ELITE COM JUSTIFICATIVA POR EXERCÍCIO
+                prompt_master = f"""
+                Aja como um Personal Trainer Master PhD e Médico do Esporte.
+                DADOS DO PACIENTE/ALUNO:
+                - Nome: {nome_aluno} | Idade: {idade_aluno} anos
+                - Altura: {altura_aluno} cm | Peso: {peso_aluno} kg | IMC: {imc:.2f}
+
+                TAREFAS:
+                1. IDENTIFIQUE o Somatotipo (Ecto, Meso, Endo) e explique o significado intuitivo entre parênteses.
+                2. ESTIME o BF% (Gordura Corporal) e a TMB (Taxa Metabólica Basal).
+                3. IDENTIFIQUE desvios posturais ou assimetrias visíveis na foto.
+                4. PRESCREVA um Plano de Treino de 7 DIAS (Segunda a Domingo).
+                
+                REGRA OBRIGATÓRIA PARA O TREINO:
+                Para CADA exercício selecionado, você deve abrir um campo chamado "OBSERVAÇÃO TÉCNICA" justificando o porquê escolheu aquele exercício especificamente para este aluno, cruzando com a idade, IMC e o que você viu na foto (ex: fraqueza aparente, necessidade de correção postural ou segurança articular).
+
+                FORMATO DE SAÍDA:
+                Markdown profissional. Use tabelas HTML para o treino. 
+                Termos técnicos SEMPRE acompanhados de tradução simples entre parênteses.
+                """
+
                 laudo_ia = None
                 for model_name in MODEL_FAILOVER_LIST:
                     try:
                         model = genai.GenerativeModel(model_name)
-                        # PROMPT REFINADO COM TRADUÇÃO INTUITIVA
-                        prompt_tecnico = """
-                        Aja como um Personal Trainer Master, PhD em Fisiologia. 
-                        Analise a imagem e forneça um laudo técnico formatado em Markdown.
-                        REGRA DE OURO: Para cada termo técnico ou científico usado, coloque imediatamente ao lado, 
-                        entre parênteses, uma explicação intuitiva e simples (linguagem de leigo).
-                        
-                        O laudo deve conter:
-                        1. BIOTIPO (Heath-Carter): (Explique o que isso significa para o ganho de massa/gordura).
-                        2. BF% ESTIMADO: (Explique se isso é bom ou o que representa no espelho).
-                        3. ANÁLISE POSTURAL: (Explique como isso afeta a dor ou a estética).
-                        4. PRESCRIÇÃO DE TREINO: Tabela Markdown com exercícios (Explique o objetivo de cada um).
-                        
-                        Siga um tom estritamente profissional, analítico e pedagógico.
-                        """
-                        response = model.generate_content([prompt_tecnico, img_raw])
+                        response = model.generate_content([prompt_master, img_raw])
                         laudo_ia = response.text
                         break 
-                    except:
-                        continue 
+                    except: continue 
 
                 if laudo_ia:
-                    # --- DESIGN PROFISSIONAL CLEAN ---
-                    html_clean = f"""
-                    <div class="result-card-unificado" style="border-top: 4px solid #3b82f6; margin-top: 30px;">
-                        <div style="text-align: right; font-size: 10px; color: #555; margin-bottom: 20px;">
-                            TECHNOBOLT GYM SOLUTIONS - RELATÓRIO TÉCNICO | {time.strftime('%d/%m/%Y %H:%M')}
+                    data_hora = time.strftime('%d/%m/%Y %H:%M')
+                    relatorio_final = f"""
+                    <div class="result-card-unificado" style="border-top: 6px solid #3b82f6; background-color: #111; padding: 30px;">
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 20px;">
+                            <span style="font-weight: 800; color: #3b82f6;">TECHNOBOLT GYM - DOSSIÊ DE CONSULTORIA</span>
+                            <span style="font-size: 12px; color: #888;">{data_hora}</span>
                         </div>
+                        
+                        <div style="background: #1a1a1a; padding: 15px; border-radius: 10px; margin-bottom: 25px; border: 1px solid #333;">
+                            <h4 style="margin:0; color: #3b82f6;">DADOS BIOMÉTRICOS ANALISADOS</h4>
+                            <p style="margin: 5px 0; font-size: 14px;">
+                                <b>ALUNO:</b> {nome_aluno.upper()} | <b>IDADE:</b> {idade_aluno} anos<br>
+                                <b>ESTATURA:</b> {altura_aluno} cm | <b>MASSA:</b> {peso_aluno} kg | <b>IMC:</b> {imc:.2f}
+                            </p>
+                        </div>
+
                         <div style="color: #ffffff; line-height: 1.8; font-size: 15px;">
                             {laudo_ia}
                         </div>
-                        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #333; font-size: 11px; color: #888; text-align: center;">
-                            Este documento é uma análise algorítmica de nexo biomecânico. 
-                            Consulte sempre um profissional de educação física presencial.
+                        
+                        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #333; font-size: 11px; color: #555; text-align: center;">
+                            Este documento é uma análise biomecânica digital protegida por criptografia TechnoBolt.
                         </div>
                     </div>
                     """
-                    st.markdown(html_clean, unsafe_allow_html=True)
+                    st.markdown(relatorio_final, unsafe_allow_html=True)
+                    
+                    st.download_button(
+                        label="📥 BAIXAR LAUDO TÉCNICO E TREINO",
+                        data=f"LAUDO TECHNOBOLT - {nome_aluno}\n\n" + laudo_ia,
+                        file_name=f"Laudo_Consultoria_{nome_aluno.replace(' ', '_')}.txt",
+                        mime="text/plain",
+                    )
                 else:
-                    st.error("⚠️ Falha na conexão com os motores de IA. Verifique sua quota de API.")
-
-elif escolha == "📊 Histórico":
-    st.markdown('<div class="main-card"><h2>Histórico</h2><p>Dossiê de evolução e auditoria de treinos.</p></div>', unsafe_allow_html=True)
-    st.info("Nenhum dado de treino exportado nesta sessão.")
+                    st.error("⚠️ Falha nos motores de IA. Verifique sua GEMINI_API_KEY no Render.")
 
 st.markdown("---")
 st.caption(f"TechnoBolt Gym © 2026 | Operador: {st.session_state.user_atual.upper()}")
