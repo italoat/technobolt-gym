@@ -17,74 +17,59 @@ st.markdown("""
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"] {
         background-color: #000000 !important;
     }
-    
     html, body, [class*="st-"] { color: #ffffff !important; }
     h1, h2, h3, p, span, label, li { color: #ffffff !important; }
 
-    /* 2. CORREÇÃO DE CAMPOS QUE FICAVAM BRANCOS (SELECT E UPLOAD) */
-    /* Selectbox (Objetivo) */
-    div[data-baseweb="select"] > div {
-        background-color: #1a1a1a !important;
-        color: white !important;
-        border: 1px solid #333 !important;
-    }
-    
-    /* Itens dentro da lista do Selectbox */
-    div[role="listbox"] ul { background-color: #1a1a1a !important; }
-    div[role="option"] { background-color: #1a1a1a !important; color: white !important; }
-    div[role="option"]:hover { background-color: #3b82f6 !important; }
-
-    /* File Uploader (Foto Bio Análise) */
-    [data-testid="stFileUploader"] {
-        background-color: #1a1a1a !important;
-        border: 1px dashed #444 !important;
-        padding: 10px !important;
-        border-radius: 10px !important;
-    }
-    [data-testid="stFileUploader"] section { background-color: #1a1a1a !important; }
-    [data-testid="stFileUploader"] label { color: white !important; }
-
-    /* 3. BOTÕES CINZA ESCURO (ANTI-DEFORMAÇÃO) */
-    button, .stButton>button, .stDownloadButton>button {
+    /* 2. BOTÕES PRINCIPAIS (Login e Downloads) - CINZA ESCURO */
+    /* Usamos seletores específicos para NÃO afetar os botões de + / - e o Olho */
+    .stButton > button, .stDownloadButton > button {
         background-color: #333333 !important;
         color: #ffffff !important;
         border: 1px solid #444 !important;
         border-radius: 10px !important;
         min-height: 50px !important;
         width: 100% !important;
-        display: block !important;
         font-weight: bold !important;
         text-transform: uppercase;
         margin-top: 10px !important;
-        margin-bottom: 10px !important;
         transition: 0.3s;
     }
-    button:hover { background-color: #444444 !important; border-color: #3b82f6 !important; }
 
-    /* 4. INPUTS DE TEXTO */
-    input {
+    /* 3. CORREÇÃO DO BOTÃO DO OLHO E CONTROLES (+ / -) */
+    /* Isso impede que eles herdem o tamanho dos botões grandes */
+    button[kind="secondary"] {
+        min-height: auto !important;
+        width: auto !important;
+        background-color: transparent !important;
+        border: none !important;
+    }
+    
+    /* Ajuste específico para o ícone de visibilidade da senha */
+    [data-testid="stTextInputPasswordVisibility"] {
+        right: 10px !important;
+        height: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    /* 4. CAMPOS DE ENTRADA E SELECTS - PRETO/CINZA */
+    input, div[data-baseweb="select"] > div, [data-testid="stFileUploader"] {
         background-color: #1a1a1a !important;
         color: white !important;
         border: 1px solid #333 !important;
     }
 
-    /* 5. CARDS DE RESULTADO */
+    /* 5. CARDS E ABAS */
     .result-card-unificado { 
         background-color: #111111 !important; 
-        color: #ffffff !important; 
-        padding: 25px; 
-        border-radius: 15px; 
-        border-top: 6px solid #3b82f6; 
-        margin-top: 20px;
-        box-shadow: 0 10px 30px rgba(0,0,0,1);
+        border-top: 6px solid #3b82f6;
+        border-radius: 15px;
+        padding: 25px;
     }
-
-    /* 6. ABAS */
-    .stTabs [data-baseweb="tab-list"] { background-color: #000 !important; }
-    .stTabs [data-baseweb="tab"] { color: #888 !important; }
-    .stTabs [aria-selected="true"] { background-color: #333 !important; color: white !important; border-radius: 5px !important; }
+    .stTabs [aria-selected="true"] { background-color: #333 !important; color: white !important; }
 </style>
 """, unsafe_allow_html=True)
+
 
 # --- USUÁRIOS ---
 USUARIOS_DB = {
