@@ -196,7 +196,45 @@ if up and nome_perfil:
         imc = peso / ((altura/100)**2)
 
         with st.empty():
-            st.markdown("""<div style='text-align:center;'><h2 style='color:#3b82f6;'>ANALISANDO BIOMETRIA...</h2></div>""", unsafe_allow_html=True)
+            # URL DO SEU NOVO GIF
+            gif_scanner = "https://i.gifer.com/Y1y6.gif"
+            
+            st.markdown(f"""
+                <div style="
+                    text-align:center; 
+                    padding:40px; 
+                    background: rgba(10, 10, 10, 0.95); 
+                    border-radius:20px; 
+                    border: 2px solid #3b82f6; 
+                    box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+                    margin: 20px 0;
+                ">
+                    <img src="{gif_scanner}" width="280" style="
+                        border-radius: 15px; 
+                        margin-bottom: 25px;
+                        filter: drop-shadow(0 0 10px #3b82f6);
+                    ">
+                    <h2 style="
+                        color:#3b82f6; 
+                        font-family: 'Inter', sans-serif; 
+                        letter-spacing: 4px; 
+                        font-weight: 800;
+                        text-transform: uppercase;
+                        animation: blinker 1.5s linear infinite;
+                    ">Escaneando Biometria</h2>
+                    <p style="color:#ffffff; opacity:0.7; font-size:14px; letter-spacing: 1px;">
+                        Cruzando dados ISAK, DXA e padrões biomecânicos...
+                    </p>
+                    <audio autoplay>
+                        <source src="https://www.soundjay.com/buttons/sounds/button-20.mp3" type="audio/mpeg">
+                    </audio>
+                </div>
+                <style>
+                    @keyframes blinker {{
+                        50% {{ opacity: 0.3; }}
+                    }}
+                </style>
+            """, unsafe_allow_html=True)
             
             # Prompts com instrução de formatação impecável
             p_base = "RETORNE APENAS DADOS TÉCNICOS. PROIBIDO SAUDAÇÕES OU MARCAÇÕES ##. Use tópicos curtos."
