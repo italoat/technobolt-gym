@@ -17,20 +17,16 @@ st.set_page_config(page_title="TechnoBolt Gym Hub", layout="wide", page_icon="�
 @st.cache_resource
 def iniciar_conexao():
     try:
-        # Puxa as variáveis de ambiente do Render para segurança total
         user = os.environ.get("MONGO_USER", "technobolt")
         password_raw = os.environ.get("MONGO_PASS", "tech@132")
         host = os.environ.get("MONGO_HOST", "cluster0.zbjsvk6.mongodb.net")
-        
-        # Tratamento RFC 3986 para caracteres especiais como '@'
         password = urllib.parse.quote_plus(password_raw)
         uri = f"mongodb+srv://{user}:{password}@{host}/?appName=Cluster0"
-        
         client = MongoClient(uri)
-        client.admin.command('ping')  # Validação de conexão
-        return client['TechnoBoltDB']
+        client.admin.command('ping')
+        return client['technoboltgym'] # Nome conforme sua estrutura no Compass
     except Exception as e:
-        st.error(f"Erro de conexão com a nuvem: {e}")
+        st.error(f"Erro de conexão com o Banco de Dados: {e}")
         return None
 
 db = iniciar_conexao()
@@ -83,7 +79,7 @@ def gerar_pdf_elite(nome, conteudo, titulo, data_analise):
     pdf.multi_cell(0, 7, texto_limpo.encode('latin-1', 'replace').decode('latin-1'))
     return bytes(pdf.output(dest='S'))
 
-# --- MOTOR DE IA (PENTACAMADA) ---
+# --- MOTOR DE IA ---
 def realizar_scan_phd(prompt_mestre, img_pil):
     img_byte_arr = io.BytesIO(); img_pil.save(img_byte_arr, format='JPEG')
     img_blob = {"mime_type": "image/jpeg", "data": img_byte_arr.getvalue()}
@@ -102,7 +98,7 @@ def realizar_scan_phd(prompt_mestre, img_pil):
         except: continue
     return None, "OFFLINE"
 
-# --- AUTENTICAÇÃO E REGISTRO ---
+# --- LOGIN E REGISTRO ---
 if "logado" not in st.session_state: st.session_state.logado = False
 
 if not st.session_state.logado:
@@ -114,25 +110,25 @@ if not st.session_state.logado:
         if st.button("AUTENTICAR"):
             udata = db.usuarios.find_one({"usuario": u}) if db is not None else None
             if udata and udata['senha'] == p:
-                if udata['status'] == 'pendente': st.warning("⚠️ Conta em análise. Aguarde a ativação.")
-                elif udata['status'] == 'inativo': st.error("❌ Conta desativada.")
+                if udata['status'] == 'pendente': st.warning("⚠️ Aguarde a ativação pelo Admin.")
+                elif udata['status'] == 'inativo': st.error("❌ Conta inativa.")
                 else:
                     st.session_state.logado = True; st.session_state.user_atual = u
                     st.session_state.is_admin = udata.get('is_admin', False); st.rerun()
-            else: st.error("Dados de acesso incorretos.")
+            else: st.error("Acesso negado.")
     with c2:
         if st.button("SOLICITAR ACESSO"):
             if u and p and db is not None:
-                if db.usuarios.find_one({"usuario": u}): st.error("Este usuário já existe.")
+                if db.usuarios.find_one({"usuario": u}): st.error("Já cadastrado.")
                 else:
-                    db.usuarios.insert_one({"usuario": u, "senha": p, "status": "pendente", "avaliacoes_restantes": 0, "historico_dossies": [], "is_admin": False})
-                    st.success("Solicitação enviada! Aguarde a aprovação do Admin.")
+                    db.usuarios.insert_one({"usuario": u, "senha": p, "status": "pendente", "avaliacoes_restantes": 0, "historico_dossies": [], "is_admin": False, "nome": u.capitalize()})
+                    st.success("Solicitação enviada!")
     st.stop()
 
 # --- INTERFACE ADMIN ---
 user_doc = db.usuarios.find_one({"usuario": st.session_state.user_atual})
 if st.session_state.is_admin:
-    with st.expander("🛠️ PAINEL ADMINISTRATIVO (Gestão de Atletas)"):
+    with st.expander("🛠️ PAINEL ADMINISTRATIVO TECHNOBOLT"):
         for usr in list(db.usuarios.find({"usuario": {"$ne": "admin"}})):
             c1, c2, c3, c4 = st.columns([2, 2, 1, 2])
             c1.write(f"**{usr['usuario']}**")
@@ -143,57 +139,64 @@ if st.session_state.is_admin:
             if c4.button("Renovar (4)", key=f"r_{usr['usuario']}"):
                 db.usuarios.update_one({"usuario": usr['usuario']}, {"$set": {"avaliacoes_restantes": 4, "status": "ativo"}}); st.rerun()
 
-# --- SIDEBAR (DADOS E SAÚDE) ---
+# --- SIDEBAR (RESTRIÇÕES E DADOS) ---
 with st.sidebar:
-    st.header(f"Atleta: {st.session_state.user_atual.capitalize()}")
+    st.header(f"Atleta: {user_doc.get('nome', st.session_state.user_atual.capitalize())}")
     st.write(f"Créditos: **{user_doc.get('avaliacoes_restantes', 0)}**")
     if st.button("LOGOUT"): st.session_state.logado = False; st.rerun()
     st.divider()
-    n_perfil = st.text_input("Nome", value=st.session_state.user_atual.capitalize())
+    n_perfil = st.text_input("Nome", value=user_doc.get('nome', st.session_state.user_atual.capitalize()))
     peso = st.number_input("Peso (kg)", 30.0, 250.0, 80.0); altura = st.number_input("Altura (cm)", 100, 250, 175)
     obj = st.selectbox("Objetivo", ["Hipertrofia", "Lipólise", "Performance", "Postural"])
     
     st.subheader("📋 Histórico de Saúde")
     has_alim = st.checkbox("Possui restrição alimentar?")
-    res_alim = st.text_input("Quais?", placeholder="Ex: Glúten, Lactose...") if has_alim else "Nenhuma"
-    has_med = st.checkbox("Usa medicamento controlado?")
-    res_med = st.text_input("Quais?", placeholder="Ex: Hipertensão...") if has_med else "Nenhum"
+    res_alim = st.text_area("Quais?", placeholder="Ex: Glúten, Lactose, Vegano...") if has_alim else "Nenhuma"
+    has_med = st.checkbox("Usa medicamento?")
+    res_med = st.text_area("Quais?", placeholder="Ex: Hipertensão, Ansiedade...") if has_med else "Nenhum"
     has_fis = st.checkbox("Possui restrição física?")
-    res_fis = st.text_input("Quais?", placeholder="Ex: Hérnia de disco...") if has_fis else "Nenhuma"
+    res_fis = st.text_area("Quais?", placeholder="Ex: Hérnia de disco, Lesão no joelho...") if has_fis else "Nenhuma"
     
     up = st.file_uploader("📸 Foto Scanner", type=['jpg', 'jpeg', 'png'])
 
-# --- PROCESSAMENTO PHD INTEGRADO ---
+# --- PROCESSAMENTO PHD (PROMPT DETALHADO) ---
 if up and st.button("🚀 INICIAR ESCANEAMENTO PHD"):
     if user_doc.get('avaliacoes_restantes', 0) <= 0 and not st.session_state.is_admin:
-        st.error("Sem créditos disponíveis. Solicite renovação.")
+        st.error("Sem créditos. Solicite renovação.")
     else:
         with st.status("🧬 PROCESSANDO PROTOCOLO TECHNOBOLT..."):
             img = ImageOps.exif_transpose(Image.open(up)).convert("RGB")
             img.thumbnail((600, 600)); imc = peso / ((altura/100)**2)
             
-            prompt = f"""VOCÊ É UM CONSELHO DE ESPECIALISTAS PHD DA TECHNOBOLT GYM.
-            ANALISE PARA: {n_perfil} | OBJETIVO: {obj} | IMC: {imc:.2f}
-            RESTRIÇÕES CRÍTICAS: Alimentar: {res_alim} | Medicamentos: {res_med} | Física: {res_fis}
+            prompt_detalhado = f"""VOCÊ É UM CONSELHO DE ESPECIALISTAS PHD DA TECHNOBOLT GYM. 
+            ANALISE PARA O ATLETA: {n_perfil} | OBJETIVO: {obj} | IMC: {imc:.2f}
+            RESTRIÇÕES DE SAÚDE CRÍTICAS: Alimentar: {res_alim} | Medicamentos: {res_med} | Física: {res_fis}
 
-            ESCREVA 4 RELATÓRIOS ABAIXO DAS TAGS. OCULTE TÍTULOS E USE SEMPRE "A TECHNOBOLT GYM PRESCREVE".
+            ESCREVA 4 RELATÓRIOS ABAIXO DAS SEGUINTES TAGS. OCULTE QUALQUER TÍTULO ADICIONAL.
+            SEMPRE USE A LINGUAGEM "A TECHNOBOLT GYM PRESCREVE" E EXPLIQUE TERMOS TÉCNICOS EM PARÊNTESES.
 
             [AVALIACAO]
-            Aja como PhD em Antropometria formado com Certificação Internacional ISAK (Níveis 1 a 4), Cineantropometria Avançada e Interpretação de DXA/Tomografia. Determine Biotipo, BF% e Postura. Considere as restrições físicas no diagnóstico postural.
+            Aja como PhD em Antropometria formado com Certificação Internacional ISAK (Níveis 1 a 4), Cineantropometria Avançada, Ultrassonografia, Bioimpedância Tetrapolar, Especialização em Bioestatística, Padronização de Medidas, Interpretação de DXA e Tomografia para Composição Corporal e Crescimento Humano. 
+            Determine Biotipo predominante, BF% e Postura. Considere as restrições físicas: {res_fis}. Adicione uma dica "Performance Master".
 
             [NUTRICAO]
-            Aja como Nutricionista PhD especialista em Nutrição Esportiva e Bioquímica do Metabolismo. Prescreva DIETA EXTENSA (2 alternativas/refeição). CONSIDERE RIGOROSAMENTE: {res_alim}. Explique termos técnicos como termogênese (queima calórica digestiva) e densidade nutricional (qualidade por grama) entre parênteses.
+            Aja como Nutricionista PhD formado com Pós-graduação em Nutrição Esportiva, Clínica e Funcional, Fitoterapia, Bioquímica do Metabolismo, Gastronomia Funcional e Planejamento Dietético Avançado. 
+            Prescreva DIETA EXTENSA (2 alternativas por refeição). CONSIDERE RIGOROSAMENTE: {res_alim}. 
+            Explique termos como Termogênese Induzida pela Dieta (gasto calórico para digerir) e Densidade Nutricional (qualidade por volume) entre parênteses. Adicione uma dica "Performance Master".
 
             [SUPLEMENTACAO]
-            Aja como PhD em Farmacologia do Exercício e Mecanismos Moleculares. Indique 3 a 10 suplementos. VERIFIQUE RIGOROSAMENTE interações com {res_med}. Explique termos como biodisponibilidade (nível de absorção) e sinergismo (ação conjunta) entre parênteses.
+            Aja como Especialista PhD em Suplementação Esportiva, Farmacologia do Exercício, Bioquímica Aplicada, Fitoterapia na Performance e Mecanismos Moleculares. 
+            Indique de 3 a 10 suplementos via Nexo Metabólico. VERIFIQUE RIGOROSAMENTE interações com: {res_med}. 
+            Explique termos como Biodisponibilidade (absorção real) e Sinergismo (quando um ajuda o outro) entre parênteses. Adicione uma dica "Performance Master".
 
             [TREINO]
-            Aja como Personal Trainer PhD em Biomecânica, Cinesiologia e Musculação Avançada. Prescreva 7 dias (8-10 exerc/dia). ADAPTE O TREINO para evitar agravamento de: {res_fis}. Explique termos como braço de momento (alavanca de força) e tensão mecânica (estresse fibrilar) entre parênteses.
-            ESTRUTURA: NOME | SÉRIES | REPETIÇÕES | JUSTIFICATIVA (SEM TABELAS).
+            Aja como Personal Trainer PhD em Biomecânica e Cinesiologia, Fisiologia do Exercício, Metodologia da Preparação Física, Musculação Avançada e LPO (Levantamento de Peso Olímpico). 
+            Prescreva 7 dias (8-10 exerc/dia). ADAPTE O TREINO para evitar agravamento de: {res_fis}. 
+            Estrutura: NOME | SÉRIES | REPETIÇÕES | JUSTIFICATIVA BIOMECÂNICA (SEM TABELAS).
+            Explique termos como Braço de Momento (alavanca de força) e Tensão Mecânica (estresse nas fibras) entre parênteses. Adicione uma dica "Performance Master".
+            """
             
-            REGRAS GERAIS: Explique TODO termo técnico entre parênteses de forma intuitiva. Use linguagem Institucional de Elite."""
-            
-            res, eng = realizar_scan_phd(prompt, img)
+            res, eng = realizar_scan_phd(prompt_detalhado, img)
             if res:
                 def ext(ti, tp=None):
                     p = f"\\{ti}\\s*(.*?)\\s*(?=\\{tp}|$)" if tp else f"\\{ti}\\s*(.*)"
@@ -201,22 +204,22 @@ if up and st.button("🚀 INICIAR ESCANEAMENTO PHD"):
                     return m.group(1).strip() if m else "Processando..."
                 
                 nova = {"data": datetime.now().strftime("%d/%m/%Y %H:%M"), "r1": ext("[AVALIACAO]", "[NUTRICAO]"), "r2": ext("[NUTRICAO]", "[SUPLEMENTACAO]"), "r3": ext("[SUPLEMENTACAO]", "[TREINO]"), "r4": ext("[TREINO]", None)}
-                db.usuarios.update_one({"usuario": st.session_state.user_atual}, {"$push": {"historico_dossies": nova}, "$inc": {"avaliacoes_restantes": -1} if not st.session_state.is_admin else {"avaliacoes_restantes": 0}})
+                db.usuarios.update_one({"usuario": st.session_state.user_atual}, {"$push": {"historico_dossies": nova}, "$inc": {"avaliacoes_restantes": -1} if not st.session_state.is_admin else {"avaliacoes_restantes": 0}, "$set": {"nome": n_perfil}})
                 st.rerun()
 
-# --- EXIBIÇÃO E HISTÓRICO ---
+# --- EXIBIÇÃO HISTÓRICO ---
 hist = user_doc.get('historico_dossies', [])
 if hist:
-    datas = [a['data'] for a in reversed(hist)]; d_sel = st.selectbox("📅 Consultar Histórico de Dossiês:", datas)
+    datas = [a['data'] for a in reversed(hist)]; d_sel = st.selectbox("📅 Selecionar do Histórico:", datas)
     d = next(a for a in hist if a['data'] == d_sel)
     tabs = st.tabs(["📊 Avaliação", "🥗 Nutrição", "💊 Suplementos", "🏋️ Treino", "📜 Dossiê"])
     conts = [d['r1'], d['r2'], d['r3'], d['r4']]; tits = ["Avaliacao", "Nutricao", "Suplementos", "Treino"]
     for i, tab in enumerate(tabs[:4]):
         with tab:
             st.markdown(f"<div class='result-card-unificado'>{conts[i]}</div>", unsafe_allow_html=True)
-            st.download_button(f"📥 Baixar PDF {tits[i]}", data=gerar_pdf_elite(n_perfil, conts[i], tits[i], d['data']), file_name=f"{tits[i]}.pdf", mime="application/pdf", key=f"d_{i}_{d_sel}")
+            st.download_button(f"📥 PDF {tits[i]}", data=gerar_pdf_elite(n_perfil, conts[i], tits[i], d['data']), file_name=f"{tits[i]}.pdf", mime="application/pdf", key=f"d_{i}_{d_sel}")
     with tabs[4]:
-        f_t = f"AVALIAÇÃO ANTROPOMÉTRICA:\n{d['r1']}\n\nPLANEJAMENTO NUTRICIONAL:\n{d['r2']}\n\nSUPLEMENTAÇÃO E FARMACOLOGIA:\n{d['r3']}\n\nPRESCRIÇÃO DE TREINO BIOMECÂNICO:\n{d['r4']}"
+        f_t = f"AVALIAÇÃO:\n{d['r1']}\n\nNUTRIÇÃO:\n{d['r2']}\n\nSUPLEMENTAÇÃO:\n{d['r3']}\n\nTREINO:\n{d['r4']}"
         st.markdown(f"<div class='result-card-unificado'>{f_t}</div>", unsafe_allow_html=True)
-        st.download_button("📥 BAIXAR DOSSIÊ COMPLETO", data=gerar_pdf_elite(n_perfil, f_t, "Dossie Completo", d['data']), file_name="Dossie_Completo.pdf", mime="application/pdf", key=f"f_{d_sel}")
-else: st.info("Sua jornada começa aqui. Realize o primeiro escaneamento para gerar seus relatórios.")
+        st.download_button("📥 DOSSIÊ COMPLETO", data=gerar_pdf_elite(n_perfil, f_t, "Dossie Completo", d['data']), file_name="Dossie.pdf", mime="application/pdf", key=f"f_{d_sel}")
+else: st.info("Sua primeira análise aparecerá aqui.")
