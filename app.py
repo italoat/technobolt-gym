@@ -103,7 +103,7 @@ def realizar_scan_phd(prompt_mestre, img_pil):
     return None, "OFFLINE"
 
 # --- LOGIN ---
-USUARIOS_DB = {"admin": "admin123", "pedro.santana": "senha", "luiza.trovao": "senha", "anderson.bezerra": "senha", "fabricio.felix": "senha", "jackson.antonio": "senha", "italo.trovao": "senha", "julia.fernanda": "senha", "convidado": "senha", "patricie.medova": "senha"}
+USUARIOS_DB = {"admin": "admin123", "pedro.santana": "senha", "luiza.trovao": "senha", "anderson.bezerra": "senha", "fabricio.felix": "senha", "jackson.antonio": "senha", "italo.trovao": "senha", "julia.fernanda": "senha", "convidado": "senha", "patricie.medova": "senha", "teia.araujo": "senha"}
 if "logado" not in st.session_state: st.session_state.logado = False
 if not st.session_state.logado:
     st.title("TechnoBolt Gym"); u = st.text_input("Usuário"); p = st.text_input("Senha", type="password")
