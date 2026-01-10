@@ -1,4 +1,5 @@
 import streamlit as st
+import base64
 import google.generativeai as genai
 from PIL import Image, ImageOps
 import io
@@ -109,10 +110,25 @@ with st.sidebar:
 
 # --- MOTOR PENTACAMADA - SOLUÇÃO COM OBJETO PIL DIRETO ---
 def processar_elite(prompt, img_pil):
+    # SOLUÇÃO ALTERNATIVA: Converter PIL para Base64
+    # Isso elimina qualquer dependência de 'bytearray' ou fluxos de memória do Streamlit
+    buffered = io.BytesIO()
+    img_pil.save(buffered, format="JPEG")
+    img_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+    
+    # Estrutura de conteúdo que o Gemini aceita sem erro de binário
+    conteudo_ia = [
+        prompt,
+        {
+            "mime_type": "image/jpeg",
+            "data": img_base64
+        }
+    ]
+
     chaves = [os.environ.get(f"GEMINI_CHAVE_{i}") or st.secrets.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8)]
     chaves = [k for k in chaves if k]
     
-    # SEUS MOTORES ORIGINAIS RESTAURADOS
+    # SEUS MOTORES INTOCÁVEIS
     motores = [
         "models/gemini-3-flash-preview", 
         "models/gemini-2.5-flash", 
@@ -127,14 +143,16 @@ def processar_elite(prompt, img_pil):
             for m in motores:
                 try:
                     model = genai.GenerativeModel(m)
-                    # Passando o objeto PIL diretamente (Alternativa ao bytearray)
-                    response = model.generate_content([prompt, img_pil])
+                    # Enviamos a lista com o prompt e a imagem em Base64
+                    response = model.generate_content(conteudo_ia)
                     return limpar_texto(response.text), f"CONTA {idx+1} - {m.upper()}"
                 except Exception as e:
-                    if "429" in str(e): break
+                    if "429" in str(e): 
+                        break 
                     continue
-        except: continue
-    return "Erro Crítico: Limite de cota atingido.", "OFFLINE"
+        except: 
+            continue
+    return "Erro Crítico: Limite de cota atingido em todas as contas.", "OFFLINE"
 
 # --- PROCESSAMENTO ---
 if up and nome_perfil:
