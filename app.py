@@ -11,7 +11,7 @@ import re
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="TechnoBolt Gym Hub", layout="wide", page_icon="🏋️")
 
-# --- DESIGN SYSTEM TECHNOBOLT (BLINDAGEM CONTRA VAZAMENTO DE CÓDIGO) ---
+# --- DESIGN SYSTEM TECHNOBOLT (BLINDAGEM TOTAL) ---
 st.markdown("""
 <style>
     .stApp { background-color: #000000 !important; color: #ffffff !important; }
@@ -25,9 +25,9 @@ st.markdown("""
         background-color: transparent !important;
         border: none !important;
     }
-    [data-testid="stSidebarCollapseButton"] * {
-        font-size: 0px !important;
-        color: transparent !important;
+    [data-testid="stSidebarCollapseButton"] span, [data-testid="stSidebarCollapseButton"]::after {
+        display: none !important;
+        content: "" !important;
     }
     [data-testid="stSidebarCollapseButton"] svg {
         fill: #3b82f6 !important;
@@ -107,19 +107,19 @@ with st.sidebar:
     objetivo = st.selectbox("Objetivo", ["Hipertrofia", "Lipólise", "Performance", "Postural"])
     up = st.file_uploader("📸 Foto para Análise", type=['jpg', 'jpeg', 'png'])
 
-# --- MOTOR PENTACAMADA COM REGENERAÇÃO DE BINÁRIO (SOLUÇÃO DEFINITIVA) ---
-
+# --- MOTOR PENTACAMADA - SOLUÇÃO COM OBJETO PIL DIRETO ---
 def processar_elite(prompt, img_pil):
-    # REGENERAÇÃO: Criamos um novo buffer para cada chamada individual.
-    # Isso impede que o erro de bytearray apareça após a primeira análise.
-    img_byte_arr = io.BytesIO()
-    img_pil.save(img_byte_arr, format='JPEG')
-    img_blob = {"mime_type": "image/jpeg", "data": img_byte_arr.getvalue()}
-
     chaves = [os.environ.get(f"GEMINI_CHAVE_{i}") or st.secrets.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8)]
     chaves = [k for k in chaves if k]
     
-    motores = ["models/gemini-3-flash-preview", "models/gemini-2.5-flash", "models/gemini-2.0-flash", "models/gemini-2.0-flash-lite", "models/gemini-flash-latest"]
+    # SEUS MOTORES ORIGINAIS RESTAURADOS
+    motores = [
+        "models/gemini-3-flash-preview", 
+        "models/gemini-2.5-flash", 
+        "models/gemini-2.0-flash", 
+        "models/gemini-2.0-flash-lite", 
+        "models/gemini-flash-latest"
+    ]
 
     for idx, key in enumerate(chaves):
         try:
@@ -127,21 +127,20 @@ def processar_elite(prompt, img_pil):
             for m in motores:
                 try:
                     model = genai.GenerativeModel(m)
-                    # Passamos a cópia estruturada do blob
-                    response = model.generate_content([prompt, img_blob])
+                    # Passando o objeto PIL diretamente (Alternativa ao bytearray)
+                    response = model.generate_content([prompt, img_pil])
                     return limpar_texto(response.text), f"CONTA {idx+1} - {m.upper()}"
                 except Exception as e:
                     if "429" in str(e): break
                     continue
         except: continue
-    return "Erro Crítico: Limite de cota atingido em todas as contas.", "OFFLINE"
+    return "Erro Crítico: Limite de cota atingido.", "OFFLINE"
 
 # --- PROCESSAMENTO ---
 if up and nome_perfil:
     try:
         img_raw = ImageOps.exif_transpose(Image.open(up)).convert("RGB")
         img_raw.thumbnail((600, 600))
-        # Cálculo do IMC: $IMC = \frac{peso}{altura^2}$
         imc = peso / ((altura/100)**2)
 
         with st.empty():
