@@ -6,7 +6,6 @@ numpy<2.0.0
 pandas
 Pillow
 google-generativeai
-fpdf2
 fpdf
 pymongo
 dnspython
