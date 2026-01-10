@@ -11,16 +11,30 @@ import re
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="TechnoBolt Gym Hub", layout="wide", page_icon="🏋️")
 
-# --- DESIGN SYSTEM TECHNOBOLT (BLACK & GRAY ELITE - CORRIGIDO) ---
+# --- DESIGN SYSTEM TECHNOBOLT (BLINDAGEM TOTAL) ---
 st.markdown("""
 <style>
-    /* 1. FUNDO PRETO E FONTES BRANCAS (BLINDADO) */
+    /* 1. FUNDO E FONTES */
     .stApp { background-color: #000000 !important; color: #ffffff !important; }
     [data-testid="stHeader"], [data-testid="stSidebar"] { background-color: #000000 !important; }
     html, body, [class*="st-"] { font-family: 'Inter', sans-serif; }
     h1, h2, h3, p, span, label { color: #ffffff !important; }
 
-    /* 2. BOTÕES DE AÇÃO (Login e PDF) */
+    /* 2. FIX DEFINITIVO: SETA DA BARRA LATERAL (KEYBOARD_DOUBLE...) */
+    [data-testid="stSidebarCollapseButton"] {
+        color: transparent !important; 
+        font-size: 0px !important;
+        background-color: transparent !important;
+        border: none !important;
+    }
+    [data-testid="stSidebarCollapseButton"] svg {
+        fill: #3b82f6 !important;
+        visibility: visible !important;
+        width: 28px !important;
+        height: 28px !important;
+    }
+
+    /* 3. BOTÕES E INPUTS */
     .stButton > button, .stDownloadButton > button {
         background-color: #333333 !important;
         color: #ffffff !important;
@@ -34,37 +48,18 @@ st.markdown("""
     }
     .stButton > button:hover { background-color: #3b82f6 !important; border-color: #3b82f6 !important; }
 
-    /* 3. FIX: SETA DA BARRA LATERAL - REMOÇÃO DO TEXTO "KEYBOARD_DOUBLE..." */
-    [data-testid="stSidebarCollapseButton"] {
+    button[kind="secondary"] {
         background-color: transparent !important;
         border: none !important;
         color: #3b82f6 !important;
-        font-size: 0px !important; /* Mata o texto que vaza */
-    }
-    
-    [data-testid="stSidebarCollapseButton"] svg {
-        fill: #3b82f6 !important;
-        width: 25px !important;
-        height: 25px !important;
     }
 
-    /* 4. FIX: BOTÃO DO OLHO E CONTROLES (+ / -) */
-    div[data-testid="stTextInputPasswordVisibility"] button,
-    div[data-testid="stNumberInputStepUp"] button,
-    div[data-testid="stNumberInputStepDown"] button {
-        background-color: transparent !important;
-        border: none !important;
-        width: auto !important;
-        min-height: auto !important;
-        color: #3b82f6 !important;
-    }
-
-    /* 5. INPUTS E CARDS */
     input, div[data-baseweb="select"] > div {
         background-color: #111111 !important;
         color: white !important;
         border: 1px solid #222 !important;
     }
+
     .result-card-unificado { 
         background-color: #0a0a0a !important; 
         border-left: 6px solid #3b82f6;
@@ -76,7 +71,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- SISTEMA DE LIMPEZA DE TEXTO (IMPECÁVEL) ---
+# --- LIMPEZA DE TEXTO ---
 def limpar_texto(texto):
     texto = texto.replace('**', '').replace('###', '').replace('##', '').replace('#', '')
     texto = texto.replace('*', '•')
@@ -105,34 +100,27 @@ class TechnoBoltPDF(FPDF):
 def gerar_pdf_elite(nome, idade, altura, peso, imc, objetivo, conteudo, titulo):
     pdf = TechnoBoltPDF()
     pdf.add_page()
-    pdf.set_fill_color(240, 240, 240)
     pdf.set_font("Helvetica", "B", 12)
-    pdf.set_text_color(0, 0, 0)
-    pdf.cell(0, 10, f"  DOSSIÊ TÉCNICO: {titulo.upper()}", ln=True, fill=True)
+    pdf.cell(0, 10, f"  DOSSIÊ TÉCNICO: {titulo.upper()}", ln=True)
     pdf.ln(2)
     pdf.set_font("Helvetica", "", 10)
-    pdf.cell(0, 7, f"ATLETA: {nome.upper()}", ln=True)
-    pdf.cell(0, 7, f"IDADE: {idade} anos | ESTATURA: {altura}cm | PESO: {peso}kg", ln=True)
-    pdf.cell(0, 7, f"IMC: {imc:.2f} | OBJETIVO: {objetivo.upper()}", ln=True)
+    pdf.cell(0, 7, f"ATLETA: {nome.upper()} | IMC: {imc:.2f}", ln=True)
     pdf.ln(5)
-    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-    pdf.ln(8)
     pdf.set_font("Helvetica", "", 11)
     texto_limpo = limpar_texto(conteudo)
     pdf.multi_cell(0, 7, texto_limpo.encode('latin-1', 'replace').decode('latin-1'))
     return pdf.output(dest='S')
 
-# --- LÓGICA DE LOGIN ---
+# --- LOGIN ---
 USUARIOS_DB = {
     "admin": "admin123", "pedro.santana": "senha", "luiza.trovao": "senha",
     "anderson.bezerra": "senha", "fabricio.felix": "senha", "jackson.antonio": "senha",
     "italo.trovao": "senha", "julia.fernanda": "senha", "convidado": "senha"
 }
-
 if "logado" not in st.session_state: st.session_state.logado = False
 
 if not st.session_state.logado:
-    st.markdown('<div><h1>TechnoBolt Gym</h1><p>Consultoria de Elite</p></div>', unsafe_allow_html=True)
+    st.title("TechnoBolt Gym")
     u = st.text_input("Usuário")
     p = st.text_input("Senha", type="password")
     if st.button("AUTENTICAR"):
@@ -140,7 +128,6 @@ if not st.session_state.logado:
             st.session_state.logado = True
             st.session_state.user_atual = u
             st.rerun()
-        else: st.error("Acesso Negado.")
     st.stop()
 
 # --- SIDEBAR ---
@@ -157,18 +144,14 @@ with st.sidebar:
 
 # --- MOTOR PENTACAMADA COM CORREÇÃO DE ERRO BINÁRIO ---
 def processar_elite(prompt, img_pil):
-    # CORREÇÃO: Converte PIL para bytes puros para garantir compatibilidade total
+    # CORREÇÃO BYTEARRAY: Converte imagem PIL para bytes estruturados
     img_byte_arr = io.BytesIO()
     img_pil.save(img_byte_arr, format='JPEG')
-    img_bytes = img_byte_arr.getvalue()
-    
-    # Formato obrigatório para evitar 'bytearray' error
-    image_parts = [{"mime_type": "image/jpeg", "data": img_bytes}]
+    img_blob = {"mime_type": "image/jpeg", "data": img_byte_arr.getvalue()}
 
     chaves = [os.environ.get(f"GEMINI_CHAVE_{i}") or st.secrets.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8)]
     chaves = [k for k in chaves if k]
     
-    # SEUS MOTORES ORIGINAIS PRESERVADOS
     motores = [
         "models/gemini-3-flash-preview", 
         "models/gemini-2.5-flash", 
@@ -183,8 +166,7 @@ def processar_elite(prompt, img_pil):
             for m in motores:
                 try:
                     model = genai.GenerativeModel(m)
-                    # Passamos a imagem como parte estruturada (Dicionário de bytes)
-                    response = model.generate_content([prompt, image_parts[0]])
+                    response = model.generate_content([prompt, img_blob])
                     return limpar_texto(response.text), f"CONTA {idx+1} - {m.upper()}"
                 except Exception as e:
                     if "429" in str(e): break
@@ -203,28 +185,29 @@ if up and nome_perfil:
             gif_scanner = "https://i.gifer.com/Y1y6.gif"
             st.markdown(f"""
                 <div style="text-align:center; padding:40px; background: rgba(10, 10, 10, 0.95); border-radius:20px; border: 2px solid #3b82f6; box-shadow: 0 0 30px rgba(59, 130, 246, 0.3); margin: 20px 0;">
-                    <img src="{gif_scanner}" width="280" style="border-radius: 15px; margin-bottom: 25px; filter: drop-shadow(0 0 10px #3b82f6);">
-                    <h2 style="color:#3b82f6; font-family: 'Inter', sans-serif; letter-spacing: 4px; font-weight: 800; text-transform: uppercase; animation: blinker 1.5s linear infinite;">Escaneando Biometria</h2>
-                    <p style="color:#ffffff; opacity:0.7; font-size:14px; letter-spacing: 1px;">Cruzando dados ISAK, DXA e padrões biomecânicos...</p>
+                    <img src="{gif_scanner}" width="280" style="border-radius: 15px; margin-bottom: 25px;">
+                    <h2 style="color:#3b82f6; font-family: 'Inter', sans-serif; letter-spacing: 4px; font-weight: 800; text-transform: uppercase;">Escaneando Biometria</h2>
                     <audio autoplay><source src="https://www.soundjay.com/buttons/sounds/button-20.mp3" type="audio/mpeg"></audio>
                 </div>
-                <style>@keyframes blinker {{ 50% {{ opacity: 0.3; }} }}</style>
             """, unsafe_allow_html=True)
             
             p_base = "RETORNE APENAS DADOS TÉCNICOS. PROIBIDO SAUDAÇÕES OU MARCAÇÕES ##. Use tópicos curtos."
             
-            # SEUS PROMPTS PHDs MANTIDOS INTEGRALMENTE
+            # --- SEUS PROMPTS PHDs REINSERIDOS ---
             r1, e1 = processar_elite(f"{p_base} Aja como PhD em Antropometria formado e que faz uso dos seguintes cursos: Certificação Internacional ISAK (Níveis 1 a 4), Curso de Cineantropometria Avançada, Avaliação da Composição Corporal por Ultrassonografia, Bioimpedância Tetrapolar e Clínica, Anatomia Palpatória e Funcional, Especialização em Bioestatística Aplicada à Saúde, Avaliação Antropométrica de Populações Especiais, Ergonomia e Biometria, Padronização de Medidas Antropométricas, Interpretação de DXA e Tomografia para Composição Corporal, Crescimento e Desenvolvimento Humano para entregar um serviço de qualidade. Analise {nome_perfil}, {idade}a, IMC {imc:.2f}. Determine Biotipo, BF% e Postura. Traduza termos técnicos.", img_raw)
             time.sleep(2)
+            
             r2, e2 = processar_elite(f"{p_base} Aja como Nutricionista PhD que é formado e faz uso dos seguintes cursos: Pós-graduação em Nutrição Esportiva, Especialização em Nutrição Clínica e Funcional, Curso de Interpretação de Exames Laboratoriais, Fitoterapia Aplicada à Nutrição, Nutrição no Emagrecimento e Hipertrofia, Bioquímica do Metabolismo, Nutrição Comportamental, Gastronomia Funcional, Nutrigenética e Nutrigenômica, Planejamento Dietético Avançado e Cálculo de Dietas, Nutrição nas Patologias Metabólicas, Estratégias Nutricionais para Endurance, para compor as dietas. Objetivo {objetivo}. Determine GET, Macros e Plano Alimentar p/ biotipo.", img_raw)
             time.sleep(2)
+            
             r3, e3 = processar_elite(f"{p_base} Especialista em Suplementação que é formado e faz uso dos seguintes cursos: Especialização em Suplementação Esportiva e Recursos Ergogênicos, Farmacologia do Exercício, Bioquímica Aplicada à Suplementação, Curso de Fitoterapia na Performance, Suplementação para Grupos Especiais (Idosos e Atletas de Elite), Atualização em Proteínas e Aminoácidos, Nutrologia Esportiva, Farmácia Clínica voltada ao Esporte, Mecanismos Moleculares da Suplementação, Atualização em Vitaminas e Minerais Quelatados, para propor a suplementação de seus clientes. Indique de 3 a 10 suplementos que considere necessário. Caso considere menos que os 10 suplementos, indique o que achar util para o aluno p/ {objetivo}. Justifique via Nexo Metabólico.", img_raw)
             time.sleep(2)
+            
             r4, e4 = processar_elite(f"{p_base} Personal Trainer PhD, formado e que faz uso dos seguintes cursos:Pós-graduação em Biomecânica e Cinesiologia Aplicada, Especialização em Fisiologia do Exercício, Metodologia da Preparação Física e Periodização, Musculação e Treinamento de Força Avançado, Treinamento Funcional, Reabilitação de Lesões e Traumatologia Esportiva, Prescrição de Exercícios para Grupos Especiais (Idosos, Gestantes e Patologias), Avaliação Física e Antropometria, Nutrição Esportiva aplicada ao Treinamento, Treinamento de Alta Performance, Curso de Levantamento de Peso Olímpico (LPO), Treinamento Intervalado de Alta Intensidade (HIIT), Cinesiologia da Musculação ao montar os treinos. Treino 7 dias p/ {objetivo}. Inclua justificativa biomecânica e substitutos.", img_raw)
             st.empty()
 
         tabs = st.tabs(["📊 Avaliação", "🥗 Nutrição", "💊 Suplementos", "🏋️ Treino", "📜 Dossiê"])
-
+        
         def display_card(res, eng, titulo):
             st.markdown(f"<div class='result-card-unificado'><small style='color:#3b82f6;'>{eng}</small><br><strong>{titulo}</strong><br><br>{res}</div>", unsafe_allow_html=True)
             st.download_button(f"📥 Baixar {titulo}", data=gerar_pdf_elite(nome_perfil, idade, altura, peso, imc, objetivo, res, titulo), file_name=f"{titulo}.pdf")
@@ -233,18 +216,9 @@ if up and nome_perfil:
         with tabs[1]: display_card(r2, e2, "Planejamento Nutricional")
         with tabs[2]: display_card(r3, e3, "Protocolo de Suplementação")
         with tabs[3]: display_card(r4, e4, "Prescrição de Treinamento")
-        
         with tabs[4]:
-            dossie_completo = f"AVALIAÇÃO:\n{r1}\n\nNUTRIÇÃO:\n{r2}\n\nSUPLEMENTAÇÃO:\n{r3}\n\nTREINO:\n{r4}"
-            st.markdown(f"<div class='result-card-unificado'><strong>DOSSIÊ UNIFICADO TECHNOBOLT</strong><br><br>{dossie_completo}</div>", unsafe_allow_html=True)
-            st.download_button("📥 BAIXAR RELATÓRIO COMPLETO (PDF)", data=gerar_pdf_elite(nome_perfil, idade, altura, peso, imc, objetivo, dossie_completo, "Dossiê Completo"), file_name=f"Dossie_{nome_perfil}.pdf")
+            dossie = f"AVALIAÇÃO:\n{r1}\n\nNUTRIÇÃO:\n{r2}\n\nSUPLEMENTAÇÃO:\n{r3}\n\nTREINO:\n{r4}"
+            st.markdown(f"<div class='result-card-unificado'>{dossie}</div>", unsafe_allow_html=True)
+            st.download_button("📥 BAIXAR DOSSIÊ COMPLETO", data=gerar_pdf_elite(nome_perfil, idade, altura, peso, imc, objetivo, dossie, "Dossiê"), file_name=f"Dossie_{nome_perfil}.pdf")
 
     except Exception as e: st.error(f"Erro no processamento: {e}")
-else:
-    st.markdown("""
-        <div class="result-card-unificado" style="text-align:center;">
-            <div style="font-size: 50px; margin-bottom: 20px;">👤</div>
-            <h2 style="color:#3b82f6; letter-spacing: 2px;">SISTEMA EM ESPERA</h2>
-            <p style="color:#888; font-size:16px;">Inicie o protocolo TechnoBolt via barra lateral.</p>
-        </div>
-    """, unsafe_allow_html=True)
