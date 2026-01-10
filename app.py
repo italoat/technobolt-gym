@@ -52,26 +52,18 @@ def salvar_analise(usuario, r1, r2, r3, r4, engine):
     }
     with open(DB_FILE, "w") as f: json.dump(dados, f, indent=4)
 
-# --- MOTOR DE PDF PROFISSIONAL ---
 # --- CLASSE PDF DE ALTA PERFORMANCE (VISUAL MODERNO) ---
 class TechnoBoltPDF(FPDF):
     def header(self):
-        # Cabeçalho com Barra Lateral Azul
-        self.set_fill_color(10, 10, 10)  # Fundo Quase Preto
+        self.set_fill_color(10, 10, 10)
         self.rect(0, 0, 210, 45, 'F')
-        
-        # Logo Texto
         self.set_xy(10, 15)
         self.set_font("Helvetica", "B", 26)
-        self.set_text_color(59, 130, 246) # Azul TechnoBolt
+        self.set_text_color(59, 130, 246)
         self.cell(0, 10, "TECHNOBOLT GYM", ln=True, align="L")
-        
-        # Subtítulo
         self.set_font("Helvetica", "I", 9)
         self.set_text_color(200, 200, 200)
         self.cell(0, 5, "INTELECTO ARTIFICIAL APLICADO À PERFORMANCE HUMANA", ln=True, align="L")
-        
-        # Linha decorativa
         self.set_draw_color(59, 130, 246)
         self.set_line_width(1)
         self.line(10, 38, 200, 38)
@@ -87,58 +79,31 @@ def gerar_pdf_elite(nome, conteudo, titulo, data_analise):
     pdf = TechnoBoltPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
-    
-    # Caixa de Identificação do Atleta
     pdf.set_fill_color(240, 245, 255)
     pdf.set_draw_color(59, 130, 246)
     pdf.rect(10, 50, 190, 20, 'FD')
-    
     pdf.set_xy(15, 52)
     pdf.set_font("Helvetica", "B", 12)
     pdf.set_text_color(0, 0, 0)
     pdf.cell(90, 8, f"ATLETA: {nome.upper()}")
     pdf.cell(0, 8, f"DATA DA ANÁLISE: {data_analise}", ln=True, align="R")
-    
-    pdf.set_x(15)
-    pdf.set_font("Helvetica", "B", 10)
+    pdf.ln(25)
+    pdf.set_font("Helvetica", "B", 14)
     pdf.set_text_color(59, 130, 246)
-    pdf.cell(0, 8, f"RELATÓRIO ESPECÍFICO: {titulo.upper()}")
-    
-    pdf.ln(25) # Espaço para o conteúdo
-
-    # Estilização do Conteúdo
+    pdf.cell(0, 10, titulo.upper(), ln=True)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(5)
     pdf.set_text_color(40, 40, 40)
     pdf.set_font("Helvetica", "", 11)
-    
-    # Limpeza e Formatação do texto vindo da IA
     texto = conteudo.replace('**', '').replace('###', '').replace('##', '').replace('#', '')
-    texto = texto.replace('*', '  • ') # Melhora o visual de tópicos
-    
-    # Renderização com espaçamento moderno
+    texto = texto.replace('*', '  • ')
     pdf.multi_cell(0, 8, texto.encode('latin-1', 'replace').decode('latin-1'))
     
-    # Selo Final
-    pdf.ln(10)
-    pdf.set_font("Helvetica", "B", 8)
-    pdf.set_text_color(180, 180, 180)
-    pdf.cell(0, 10, "-" * 50, ln=True, align="C")
-    pdf.cell(0, 5, "DOCUMENTO ASSINADO DIGITALMENTE POR TECHNOBOLT CORE AI", align="C")
-    
-    return pdf.output(dest='S')
+    # SAÍDA BINÁRIA SEGURA
+    pdf_output = pdf.output(dest='S')
+    return bytes(pdf_output) if not isinstance(pdf_output, str) else bytes(pdf_output, 'latin-1')
 
-
-def gerar_pdf_elite(nome, conteudo, titulo, data_analise):
-    pdf = TechnoBoltPDF()
-    pdf.add_page(); pdf.ln(15)
-    pdf.set_text_color(0,0,0); pdf.set_font("Helvetica", "B", 14)
-    pdf.cell(0, 10, f"{titulo.upper()} - {nome}", ln=True)
-    pdf.set_font("Helvetica", "I", 10); pdf.cell(0, 5, f"Relatório gerado em: {data_analise}", ln=True)
-    pdf.ln(10); pdf.set_font("Helvetica", "", 11)
-    texto = conteudo.replace('**', '').replace('###', '').replace('*', '-')
-    pdf.multi_cell(0, 7, texto.encode('latin-1', 'replace').decode('latin-1'))
-    return pdf.output(dest='S')
-
-# --- MOTOR DE IA (PENTACAMADA) ---
+# --- MOTOR DE IA (PENTACAMADA INTOCÁVEL) ---
 def realizar_scan_phd(prompt_mestre, img_pil):
     img_byte_arr = io.BytesIO()
     img_pil.save(img_byte_arr, format='JPEG')
@@ -146,7 +111,14 @@ def realizar_scan_phd(prompt_mestre, img_pil):
     
     chaves = [os.environ.get(f"GEMINI_CHAVE_{i}") or st.secrets.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8)]
     chaves = [k for k in chaves if k]
-    motores = ["models/gemini-3-flash-preview", "models/gemini-2.5-flash", "models/gemini-2.0-flash", "models/gemini-2.0-flash-lite", "models/gemini-flash-latest"]
+    
+    motores = [
+        "models/gemini-3-flash-preview", 
+        "models/gemini-2.5-flash", 
+        "models/gemini-2.0-flash", 
+        "models/gemini-2.0-flash-lite", 
+        "models/gemini-flash-latest"
+    ]
 
     for idx, key in enumerate(chaves):
         try:
@@ -184,6 +156,10 @@ with st.sidebar:
     st.header(f"Olá, {user.split('.')[0].capitalize()}")
     if st.button("SAIR"): st.session_state.logado = False; st.rerun()
     st.divider()
+    
+    if user in dados_salvos:
+        st.success(f"Análise salva: {dados_salvos[user]['data']}")
+        
     nome_perfil = st.text_input("Nome", value=user.capitalize())
     idade = st.number_input("Idade", 12, 90, 25)
     altura = st.number_input("Altura (cm)", 100, 250, 175)
@@ -199,7 +175,6 @@ if up and nome_perfil:
     
     if st.button("🚀 INICIAR ESCANEAMENTO PHD"):
         with st.status("🧬 PROCESSANDO PROTOCOLO TECHNOBOLT..."):
-            # --- PROMPT MESTRE COM TODAS AS ESPECIALIDADES RESTAURADAS ---
             prompt = f"""
             VOCÊ É UM CONSELHO DE ESPECIALISTAS PHD DA TECHNOBOLT GYM. 
             ANÁLISE PARA: {nome_perfil} | OBJETIVO: {objetivo} | IMC: {imc:.2f}
@@ -227,18 +202,33 @@ if up and nome_perfil:
 # --- EXIBIÇÃO ---
 if user in dados_salvos:
     d = dados_salvos[user]
-    st.info(f"📅 Última análise realizada em: {d['data']}")
     tabs = st.tabs(["📊 Avaliação", "🥗 Nutrição", "💊 Suplementos", "🏋️ Treino", "📜 Dossiê"])
     
     for i, titulo in enumerate(["Avaliação", "Nutrição", "Suplementos", "Treino"]):
         conteudo = d[f"r{i+1}"]
         with tabs[i]:
             st.markdown(f"<div class='result-card-unificado'>{conteudo}</div>", unsafe_allow_html=True)
-            st.download_button(f"📥 Baixar {titulo}", data=gerar_pdf_elite(nome_perfil, conteudo, titulo, d['data']), file_name=f"{titulo}_TechnoBolt.pdf")
+            
+            pdf_data = gerar_pdf_elite(nome_perfil, conteudo, titulo, d['data'])
+            st.download_button(
+                label=f"📥 Baixar PDF {titulo}",
+                data=pdf_data,
+                file_name=f"{titulo}_TechnoBolt.pdf",
+                mime="application/pdf",
+                key=f"btn_{titulo}"
+            )
     
     with tabs[4]:
         completo = f"{d['r1']}\n{d['r2']}\n{d['r3']}\n{d['r4']}"
         st.markdown(f"<div class='result-card-unificado'>{completo}</div>", unsafe_allow_html=True)
-        st.download_button("📥 BAIXAR DOSSIÊ COMPLETO", data=gerar_pdf_elite(nome_perfil, completo, "Dossiê Completo", d['data']), file_name="Dossie_TechnoBolt.pdf")
+        
+        pdf_full = gerar_pdf_elite(nome_perfil, completo, "Dossiê Completo", d['data'])
+        st.download_button(
+            label="📥 BAIXAR DOSSIÊ COMPLETO",
+            data=pdf_full,
+            file_name="Dossie_TechnoBolt.pdf",
+            mime="application/pdf",
+            key="btn_full"
+        )
 else:
     st.markdown("<div class='result-card-unificado' style='text-align:center;'>Aguardando Upload para Primeira Análise</div>", unsafe_allow_html=True)
