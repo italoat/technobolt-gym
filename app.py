@@ -11,7 +11,7 @@ import re
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="TechnoBolt Gym Hub", layout="wide", page_icon="🏋️")
 
-# --- DESIGN SYSTEM TECHNOBOLT (BLACK & GRAY ELITE) ---
+# --- DESIGN SYSTEM TECHNOBOLT (BLACK & GRAY ELITE - CORRIGIDO) ---
 st.markdown("""
 <style>
     /* 1. FUNDO PRETO E FONTES BRANCAS (BLINDADO) */
@@ -20,7 +20,7 @@ st.markdown("""
     html, body, [class*="st-"] { font-family: 'Inter', sans-serif; }
     h1, h2, h3, p, span, label { color: #ffffff !important; }
 
-    /* 2. BOTÕES DE AÇÃO (Login e PDF) - Sem deformar botões internos */
+    /* 2. BOTÕES DE AÇÃO (Login e PDF) */
     .stButton > button, .stDownloadButton > button {
         background-color: #333333 !important;
         color: #ffffff !important;
@@ -34,11 +34,12 @@ st.markdown("""
     }
     .stButton > button:hover { background-color: #3b82f6 !important; border-color: #3b82f6 !important; }
 
-    /* 3. FIX: SETA DA BARRA LATERAL - LIMPEZA TOTAL */
+    /* 3. FIX: SETA DA BARRA LATERAL - REMOÇÃO DO TEXTO "KEYBOARD_DOUBLE..." */
     [data-testid="stSidebarCollapseButton"] {
         background-color: transparent !important;
         border: none !important;
         color: #3b82f6 !important;
+        font-size: 0px !important; /* Mata o texto que vaza */
     }
     
     [data-testid="stSidebarCollapseButton"] svg {
@@ -77,10 +78,9 @@ st.markdown("""
 
 # --- SISTEMA DE LIMPEZA DE TEXTO (IMPECÁVEL) ---
 def limpar_texto(texto):
-    # Remove hashtags, asteriscos duplos e outros símbolos de markdown
     texto = texto.replace('**', '').replace('###', '').replace('##', '').replace('#', '')
-    texto = texto.replace('*', '•') # Transforma asteriscos em bullets elegantes
-    texto = re.sub(r'\n\s*\n', '\n', texto) # Remove linhas em branco excessivas
+    texto = texto.replace('*', '•')
+    texto = re.sub(r'\n\s*\n', '\n', texto)
     return texto.strip()
 
 # --- CLASSE PDF PROFISSIONAL ---
@@ -105,14 +105,11 @@ class TechnoBoltPDF(FPDF):
 def gerar_pdf_elite(nome, idade, altura, peso, imc, objetivo, conteudo, titulo):
     pdf = TechnoBoltPDF()
     pdf.add_page()
-    
-    # Bloco de Dados do Atleta
     pdf.set_fill_color(240, 240, 240)
     pdf.set_font("Helvetica", "B", 12)
     pdf.set_text_color(0, 0, 0)
     pdf.cell(0, 10, f"  DOSSIÊ TÉCNICO: {titulo.upper()}", ln=True, fill=True)
     pdf.ln(2)
-    
     pdf.set_font("Helvetica", "", 10)
     pdf.cell(0, 7, f"ATLETA: {nome.upper()}", ln=True)
     pdf.cell(0, 7, f"IDADE: {idade} anos | ESTATURA: {altura}cm | PESO: {peso}kg", ln=True)
@@ -120,15 +117,12 @@ def gerar_pdf_elite(nome, idade, altura, peso, imc, objetivo, conteudo, titulo):
     pdf.ln(5)
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(8)
-    
-    # Conteúdo Principal
     pdf.set_font("Helvetica", "", 11)
     texto_limpo = limpar_texto(conteudo)
     pdf.multi_cell(0, 7, texto_limpo.encode('latin-1', 'replace').decode('latin-1'))
-    
     return pdf.output(dest='S')
 
-# --- LÓGICA DE USUÁRIOS E LOGIN ---
+# --- LÓGICA DE LOGIN ---
 USUARIOS_DB = {
     "admin": "admin123", "pedro.santana": "senha", "luiza.trovao": "senha",
     "anderson.bezerra": "senha", "fabricio.felix": "senha", "jackson.antonio": "senha",
@@ -149,7 +143,7 @@ if not st.session_state.logado:
         else: st.error("Acesso Negado.")
     st.stop()
 
-# --- SIDEBAR E CAMPOS ---
+# --- SIDEBAR ---
 with st.sidebar:
     st.header(f"Olá, {st.session_state.user_atual.split('.')[0].capitalize()}")
     if st.button("SAIR"): st.session_state.logado = False; st.rerun()
@@ -161,14 +155,15 @@ with st.sidebar:
     objetivo = st.selectbox("Objetivo", ["Hipertrofia", "Lipólise", "Performance", "Postural"])
     up = st.file_uploader("📸 Foto para Análise", type=['jpg', 'jpeg', 'png'])
 
-# --- MOTOR DE RODÍZIO 7 CHAVES ---
-# --- MOTOR PENTACAMADA COM CORREÇÃO BINÁRIA ---
+# --- MOTOR PENTACAMADA COM CORREÇÃO DE ERRO BINÁRIO ---
 def processar_elite(prompt, img_pil):
-    # CORREÇÃO: Converte PIL para bytes antes de enviar (Resolve o erro de bytearray)
+    # CORREÇÃO: Converte PIL para bytes puros para garantir compatibilidade total
     img_byte_arr = io.BytesIO()
     img_pil.save(img_byte_arr, format='JPEG')
-    # Formato obrigatório para a API do Google Gemini
-    image_parts = [{"mime_type": "image/jpeg", "data": img_byte_arr.getvalue()}]
+    img_bytes = img_byte_arr.getvalue()
+    
+    # Formato obrigatório para evitar 'bytearray' error
+    image_parts = [{"mime_type": "image/jpeg", "data": img_bytes}]
 
     chaves = [os.environ.get(f"GEMINI_CHAVE_{i}") or st.secrets.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8)]
     chaves = [k for k in chaves if k]
@@ -188,15 +183,14 @@ def processar_elite(prompt, img_pil):
             for m in motores:
                 try:
                     model = genai.GenerativeModel(m)
-                    # Passamos o dicionário de imagem tratado
+                    # Passamos a imagem como parte estruturada (Dicionário de bytes)
                     response = model.generate_content([prompt, image_parts[0]])
                     return limpar_texto(response.text), f"CONTA {idx+1} - {m.upper()}"
                 except Exception as e:
-                    if "429" in str(e): break # Pula para a próxima conta se estourar cota
+                    if "429" in str(e): break
                     continue
         except: continue
     return "Erro Crítico: Limite de cota atingido em todas as contas.", "OFFLINE"
-
 
 # --- PROCESSAMENTO ---
 if up and nome_perfil:
@@ -206,49 +200,20 @@ if up and nome_perfil:
         imc = peso / ((altura/100)**2)
 
         with st.empty():
-            # URL DO SEU NOVO GIF
             gif_scanner = "https://i.gifer.com/Y1y6.gif"
-            
             st.markdown(f"""
-                <div style="
-                    text-align:center; 
-                    padding:40px; 
-                    background: rgba(10, 10, 10, 0.95); 
-                    border-radius:20px; 
-                    border: 2px solid #3b82f6; 
-                    box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
-                    margin: 20px 0;
-                ">
-                    <img src="{gif_scanner}" width="280" style="
-                        border-radius: 15px; 
-                        margin-bottom: 25px;
-                        filter: drop-shadow(0 0 10px #3b82f6);
-                    ">
-                    <h2 style="
-                        color:#3b82f6; 
-                        font-family: 'Inter', sans-serif; 
-                        letter-spacing: 4px; 
-                        font-weight: 800;
-                        text-transform: uppercase;
-                        animation: blinker 1.5s linear infinite;
-                    ">Escaneando Biometria</h2>
-                    <p style="color:#ffffff; opacity:0.7; font-size:14px; letter-spacing: 1px;">
-                        Cruzando dados ISAK, DXA e padrões biomecânicos...
-                    </p>
-                    <audio autoplay>
-                        <source src="https://www.soundjay.com/buttons/sounds/button-20.mp3" type="audio/mpeg">
-                    </audio>
+                <div style="text-align:center; padding:40px; background: rgba(10, 10, 10, 0.95); border-radius:20px; border: 2px solid #3b82f6; box-shadow: 0 0 30px rgba(59, 130, 246, 0.3); margin: 20px 0;">
+                    <img src="{gif_scanner}" width="280" style="border-radius: 15px; margin-bottom: 25px; filter: drop-shadow(0 0 10px #3b82f6);">
+                    <h2 style="color:#3b82f6; font-family: 'Inter', sans-serif; letter-spacing: 4px; font-weight: 800; text-transform: uppercase; animation: blinker 1.5s linear infinite;">Escaneando Biometria</h2>
+                    <p style="color:#ffffff; opacity:0.7; font-size:14px; letter-spacing: 1px;">Cruzando dados ISAK, DXA e padrões biomecânicos...</p>
+                    <audio autoplay><source src="https://www.soundjay.com/buttons/sounds/button-20.mp3" type="audio/mpeg"></audio>
                 </div>
-                <style>
-                    @keyframes blinker {{
-                        50% {{ opacity: 0.3; }}
-                    }}
-                </style>
+                <style>@keyframes blinker {{ 50% {{ opacity: 0.3; }} }}</style>
             """, unsafe_allow_html=True)
             
-            # Prompts com instrução de formatação impecável
             p_base = "RETORNE APENAS DADOS TÉCNICOS. PROIBIDO SAUDAÇÕES OU MARCAÇÕES ##. Use tópicos curtos."
             
+            # SEUS PROMPTS PHDs MANTIDOS INTEGRALMENTE
             r1, e1 = processar_elite(f"{p_base} Aja como PhD em Antropometria formado e que faz uso dos seguintes cursos: Certificação Internacional ISAK (Níveis 1 a 4), Curso de Cineantropometria Avançada, Avaliação da Composição Corporal por Ultrassonografia, Bioimpedância Tetrapolar e Clínica, Anatomia Palpatória e Funcional, Especialização em Bioestatística Aplicada à Saúde, Avaliação Antropométrica de Populações Especiais, Ergonomia e Biometria, Padronização de Medidas Antropométricas, Interpretação de DXA e Tomografia para Composição Corporal, Crescimento e Desenvolvimento Humano para entregar um serviço de qualidade. Analise {nome_perfil}, {idade}a, IMC {imc:.2f}. Determine Biotipo, BF% e Postura. Traduza termos técnicos.", img_raw)
             time.sleep(2)
             r2, e2 = processar_elite(f"{p_base} Aja como Nutricionista PhD que é formado e faz uso dos seguintes cursos: Pós-graduação em Nutrição Esportiva, Especialização em Nutrição Clínica e Funcional, Curso de Interpretação de Exames Laboratoriais, Fitoterapia Aplicada à Nutrição, Nutrição no Emagrecimento e Hipertrofia, Bioquímica do Metabolismo, Nutrição Comportamental, Gastronomia Funcional, Nutrigenética e Nutrigenômica, Planejamento Dietético Avançado e Cálculo de Dietas, Nutrição nas Patologias Metabólicas, Estratégias Nutricionais para Endurance, para compor as dietas. Objetivo {objetivo}. Determine GET, Macros e Plano Alimentar p/ biotipo.", img_raw)
@@ -277,18 +242,9 @@ if up and nome_perfil:
     except Exception as e: st.error(f"Erro no processamento: {e}")
 else:
     st.markdown("""
-        <div class="result-card-unificado" style="text-align:center; border-top: 2px solid #333;">
+        <div class="result-card-unificado" style="text-align:center;">
             <div style="font-size: 50px; margin-bottom: 20px;">👤</div>
             <h2 style="color:#3b82f6; letter-spacing: 2px;">SISTEMA EM ESPERA</h2>
-            <p style="color:#888; font-size:16px;">Aguardando entrada de dados biométricos para iniciar o protocolo.</p>
-            <div style="background:#000; padding:15px; border-radius:10px; margin-top:20px; border: 1px dashed #3b82f6;">
-                <p style="margin:0; font-size:14px; color:#fff;">
-                    <b>INSTRUÇÕES TECHNOBOLT:</b><br><br>
-                    1. Utilize o <b>Painel Lateral</b> para inserir seus dados biométricos.<br>
-                    2. Selecione seu <b>Objetivo Principal</b> (Hipertrofia, Lipólise, etc).<br>
-                    3. Faça o upload da <b>Foto de Bio-Análise</b>.<br><br>
-                    <i>O scanner PhD será ativado instantaneamente após o upload.</i>
-                </p>
-            </div>
+            <p style="color:#888; font-size:16px;">Inicie o protocolo TechnoBolt via barra lateral.</p>
         </div>
     """, unsafe_allow_html=True)
