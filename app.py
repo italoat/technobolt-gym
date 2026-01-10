@@ -52,6 +52,16 @@ def salvar_analise(usuario, r1, r2, r3, r4, engine):
     }
     with open(DB_FILE, "w") as f: json.dump(dados, f, indent=4)
 
+
+def sanitizar_texto_pdf(texto):
+    # Remove Emojis e Símbolos não suportados pelo FPDF (evita o erro do '?')
+    texto = texto.replace('**', '').replace('###', '').replace('##', '').replace('#', '')
+    # Substitui marcadores visuais por caracteres compatíveis
+    texto = texto.replace('•', '-').replace('✅', '[OK]').replace('📊', '').replace('🥗', '').replace('💊', '').replace('🏋️', '')
+    # Transforma tabelas Markdown em listas simples (evita texto esmagado no PDF)
+    texto = texto.replace('|', ' ').replace('--|--', ' ').replace('---', '')
+    return texto
+
 # --- CLASSE PDF DE ALTA PERFORMANCE (VISUAL MODERNO) ---
 class TechnoBoltPDF(FPDF):
     def header(self):
@@ -79,29 +89,37 @@ def gerar_pdf_elite(nome, conteudo, titulo, data_analise):
     pdf = TechnoBoltPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
+    
+    # Cabeçalho de Identificação
     pdf.set_fill_color(240, 245, 255)
     pdf.set_draw_color(59, 130, 246)
     pdf.rect(10, 50, 190, 20, 'FD')
+    
     pdf.set_xy(15, 52)
     pdf.set_font("Helvetica", "B", 12)
     pdf.set_text_color(0, 0, 0)
     pdf.cell(90, 8, f"ATLETA: {nome.upper()}")
     pdf.cell(0, 8, f"DATA DA ANÁLISE: {data_analise}", ln=True, align="R")
+    
     pdf.ln(25)
     pdf.set_font("Helvetica", "B", 14)
     pdf.set_text_color(59, 130, 246)
     pdf.cell(0, 10, titulo.upper(), ln=True)
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(5)
+
+    # Conteúdo Estilizado
     pdf.set_text_color(40, 40, 40)
-    pdf.set_font("Helvetica", "", 11)
-    texto = conteudo.replace('**', '').replace('###', '').replace('##', '').replace('#', '')
-    texto = texto.replace('*', '  • ')
-    pdf.multi_cell(0, 8, texto.encode('latin-1', 'replace').decode('latin-1'))
+    pdf.set_font("Helvetica", "", 10) # Fonte 10 para caber o treino volumoso
     
-    # SAÍDA BINÁRIA SEGURA
+    # Chama a limpeza antes de renderizar
+    texto_limpo = sanitizar_texto_pdf(conteudo)
+    
+    pdf.multi_cell(0, 7, texto_limpo.encode('latin-1', 'replace').decode('latin-1'))
+    
     pdf_output = pdf.output(dest='S')
     return bytes(pdf_output) if not isinstance(pdf_output, str) else bytes(pdf_output, 'latin-1')
+
 
 # --- MOTOR DE IA (PENTACAMADA INTOCÁVEL) ---
 def realizar_scan_phd(prompt_mestre, img_pil):
@@ -189,10 +207,10 @@ if up and nome_perfil:
 
             4. PRESCRIÇÃO DE TREINO: Personal Trainer PhD em Biomecânica e Cinesiologia, Fisiologia do Exercício, Metodologia de Periodização, Musculação Avançada, LPO e HIIT. 
                PRESCREVA TREINO DE 7 DIAS. MAXIMIZE RESULTADOS: 8 a 10 exercícios por dia. 
-               PARA CADA EXERCÍCIO INCLUA: Nome, Séries, Repetições e a JUSTIFICATIVA BIOMECÂNICA DETALHADA.
-
-            REGRAS: Use tópicos curtos. Proibido saudações. Use linguagem de elite.
-            """
+   ESTRUTURA: NOME DO EXERCÍCIO | SÉRIES | REPETIÇÕES | JUSTIFICATIVA BIOMECÂNICA.
+   IMPORTANTE: NÃO USE TABELAS MARKDOWN (evite o uso de barras verticais e traços de tabela). 
+   Use listas numeradas ou tópicos simples para cada exercício.
+"""
             res, eng = realizar_scan_phd(prompt, img_raw)
             if res:
                 partes = res.split('[DIVISOR]')
@@ -211,12 +229,12 @@ if user in dados_salvos:
             
             pdf_data = gerar_pdf_elite(nome_perfil, conteudo, titulo, d['data'])
             st.download_button(
-                label=f"📥 Baixar PDF {titulo}",
-                data=pdf_data,
-                file_name=f"{titulo}_TechnoBolt.pdf",
-                mime="application/pdf",
-                key=f"btn_{titulo}"
-            )
+    label=f"📥 Baixar PDF {titulo}",
+    data=pdf_data,
+    file_name=f"{titulo}_TechnoBolt.pdf",
+    mime="application/pdf", # Crucial para evitar erros de binário
+    key=f"btn_{titulo}"
+)
     
     with tabs[4]:
         completo = f"{d['r1']}\n{d['r2']}\n{d['r3']}\n{d['r4']}"
