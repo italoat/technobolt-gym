@@ -131,27 +131,27 @@ if up and nome_perfil:
         with st.status("🧬 PROCESSANDO PROTOCOLO TECHNOBOLT..."):
             prompt = f"""VOCÊ É UM CONSELHO DE ESPECIALISTAS PHD DA TECHNOBOLT GYM. ANÁLISE PARA: {nome_perfil} | OBJETIVO: {objetivo} | IMC: {imc:.2f}
             
-            ESCREVA 4 RELATÓRIOS TÉCNICOS LOGO ABAIXO DAS SEGUINTES TAGS:
+            ESCREVA 4 RELATÓRIOS TÉCNICOS LOGO ABAIXO DAS SEGUINTES TAGS. OCULTE QUALQUER TÍTULO ADICIONAL (como 'Relatório de Avaliação') E COMECE DIRETAMENTE COM O CONTEÚDO.
+            SEMPRE USE A LINGUAGEM "A TECHNOBOLT GYM PRESCREVE" EM VEZ DE "NÓS".
 
             [AVALIACAO]
-            Aja como PhD em Antropometria (ISAK 4, DXA). Use termos técnicos avançados explicando-os intuitivamente entre parênteses. Determine Biotipo, BF% e Postura. Inclua dicas para otimizar a composição corporal.
+            Aja como PhD em Antropometria (ISAK 4, DXA, Tomografia). Use termos técnicos avançados explicando-os intuitivamente entre parênteses. Determine Biotipo, BF% e Postura. Inclua dicas para otimizar a composição corporal.
 
             [NUTRICAO]
-            Aja como Nutricionista PhD. Prescreva uma DIETA EXTENSA E COMPLETA. Para cada refeição, forneça ao menos 2 ALTERNATIVAS de alimentos. Use termos como termogênese induzida pela dieta (gasto calórico para digerir), densidade calórica (calorias por volume), etc., explicando-os. Determine GET, Macros e Plano Alimentar.
+            Aja como Nutricionista PhD. Prescreva uma DIETA EXTENSA E COMPLETA. Para cada refeição, forneça ao menos 2 ALTERNATIVAS de alimentos. Use termos técnicos (ex: termogênese induzida pela dieta, densidade calórica) explicando-os intuitivamente entre parênteses. Determine GET, Macros e Plano Alimentar.
 
             [SUPLEMENTACAO]
-            Aja como PhD em Farmacologia. Indique 3 a 10 suplementos. Use termos como biodisponibilidade (absorção), sinergismo (ação conjunta), explicando-os. Inclua dicas de timing nutricional.
+            Aja como PhD em Farmacologia. Indique 3 a 10 suplementos. Use termos técnicos (ex: biodisponibilidade, sinergismo) explicando-os intuitivamente entre parênteses. Inclua dicas de timing nutricional.
 
             [TREINO]
-            Aja como PhD em Biomecânica. Prescreva treino de 7 dias com 8 a 10 exercícios por dia. Use termos como braço de momento (alavanca), hipertrofia sarcoplasmática (volume fluido), explicando-os. 
+            Aja como PhD em Biomecânica. Prescreva treino de 7 dias com 8 a 10 exercícios por dia. Use termos técnicos (ex: braço de momento, hipertrofia sarcoplasmática) explicando-os intuitivamente entre parênteses. 
             ESTRUTURA: NOME DO EXERCÍCIO | SÉRIES | REPETIÇÕES | JUSTIFICATIVA BIOMECÂNICA DETALHADA.
             NÃO USE TABELAS MARKDOWN. Use listas numeradas.
             
-            REGRAS GERAIS: Explique TODO termo técnico entre parênteses. Adicione dicas de "Performance Master" em cada seção. Use linguagem de Elite."""
+            REGRAS GERAIS: Explique TODO termo técnico entre parênteses. Adicione dicas de "Performance Master" em cada seção. Use linguagem de Elite e humanizada."""
             
             res, eng = realizar_scan_phd(prompt, img_raw)
             if res:
-                # Lógica de extração blindada por tags
                 def extrair(tag_inicio, proxima_tag=None):
                     try:
                         pattern = f"\\{tag_inicio}\\s*(.*?)\\s*(?=\\{proxima_tag}|$)" if proxima_tag else f"\\{tag_inicio}\\s*(.*)"
