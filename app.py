@@ -11,35 +11,31 @@ import re
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="TechnoBolt Gym Hub", layout="wide", page_icon="🏋️")
 
-# --- DESIGN SYSTEM TECHNOBOLT (FIX DA SETA E VAZAMENTO) ---
+# --- DESIGN SYSTEM TECHNOBOLT (BLINDAGEM CONTRA VAZAMENTO DE CÓDIGO) ---
 st.markdown("""
 <style>
-    /* 1. FUNDO E FONTES */
     .stApp { background-color: #000000 !important; color: #ffffff !important; }
     [data-testid="stHeader"], [data-testid="stSidebar"] { background-color: #000000 !important; }
     html, body, [class*="st-"] { font-family: 'Inter', sans-serif; color: #ffffff !important; }
 
-    /* 2. FIX DEFINITIVO DA SETA: Remove o texto "Keyboard_double..." */
+    /* FIX DEFINITIVO DA SETA: Remove o texto "Keyboard_double_arrow_right" */
     [data-testid="stSidebarCollapseButton"] {
         color: transparent !important;
         font-size: 0px !important;
+        background-color: transparent !important;
+        border: none !important;
     }
-    /* Esconde qualquer texto dentro do botão de colapso */
-    [data-testid="stSidebarCollapseButton"] div, 
-    [data-testid="stSidebarCollapseButton"] span {
-        display: none !important;
-        color: transparent !important;
+    [data-testid="stSidebarCollapseButton"] * {
         font-size: 0px !important;
+        color: transparent !important;
     }
     [data-testid="stSidebarCollapseButton"] svg {
         fill: #3b82f6 !important;
         visibility: visible !important;
         width: 28px !important;
         height: 28px !important;
-        display: block !important;
     }
 
-    /* 3. BOTÕES E CARDS */
     .stButton > button, .stDownloadButton > button {
         background-color: #333333 !important;
         color: #ffffff !important;
@@ -70,20 +66,15 @@ def limpar_texto(texto):
 
 class TechnoBoltPDF(FPDF):
     def header(self):
-        self.set_fill_color(0, 0, 0)
-        self.rect(0, 0, 210, 35, 'F')
-        self.set_text_color(59, 130, 246)
-        self.set_font("Helvetica", "B", 22)
+        self.set_fill_color(0, 0, 0); self.rect(0, 0, 210, 35, 'F')
+        self.set_text_color(59, 130, 246); self.set_font("Helvetica", "B", 22)
         self.cell(0, 15, "TECHNOBOLT GYM", ln=True, align="C")
-        self.ln(10)
 
 def gerar_pdf_elite(nome, idade, altura, peso, imc, objetivo, conteudo, titulo):
     pdf = TechnoBoltPDF()
-    pdf.add_page()
-    pdf.set_font("Helvetica", "B", 12)
+    pdf.add_page(); pdf.set_font("Helvetica", "B", 12)
     pdf.cell(0, 10, f"  DOSSIÊ TÉCNICO: {titulo.upper()}", ln=True)
-    pdf.ln(5)
-    pdf.set_font("Helvetica", "", 11)
+    pdf.ln(5); pdf.set_font("Helvetica", "", 11)
     texto_limpo = limpar_texto(conteudo)
     pdf.multi_cell(0, 7, texto_limpo.encode('latin-1', 'replace').decode('latin-1'))
     return pdf.output(dest='S')
@@ -98,13 +89,10 @@ if "logado" not in st.session_state: st.session_state.logado = False
 
 if not st.session_state.logado:
     st.title("TechnoBolt Gym")
-    u = st.text_input("Usuário")
-    p = st.text_input("Senha", type="password")
+    u = st.text_input("Usuário"); p = st.text_input("Senha", type="password")
     if st.button("AUTENTICAR"):
         if u in USUARIOS_DB and USUARIOS_DB[u] == p:
-            st.session_state.logado = True
-            st.session_state.user_atual = u
-            st.rerun()
+            st.session_state.logado = True; st.session_state.user_atual = u; st.rerun()
     st.stop()
 
 # --- SIDEBAR ---
@@ -119,30 +107,19 @@ with st.sidebar:
     objetivo = st.selectbox("Objetivo", ["Hipertrofia", "Lipólise", "Performance", "Postural"])
     up = st.file_uploader("📸 Foto para Análise", type=['jpg', 'jpeg', 'png'])
 
-# --- MOTOR PENTACAMADA COM CORREÇÃO DEFINITIVA DE BYTES ---
+# --- MOTOR PENTACAMADA COM REGENERAÇÃO DE BINÁRIO (SOLUÇÃO DEFINITIVA) ---
+
 def processar_elite(prompt, img_pil):
-    # CORREÇÃO: Converter para BytesIO e depois para um dicionário estruturado (Blob)
-    # Isso impede o erro de <class 'bytearray'> no loop de rodízio
+    # REGENERAÇÃO: Criamos um novo buffer para cada chamada individual.
+    # Isso impede que o erro de bytearray apareça após a primeira análise.
     img_byte_arr = io.BytesIO()
     img_pil.save(img_byte_arr, format='JPEG')
-    
-    # FORMATO ESTRUTURADO PARA O SDK GEMINI
-    img_data = {
-        "mime_type": "image/jpeg",
-        "data": img_byte_arr.getvalue()
-    }
+    img_blob = {"mime_type": "image/jpeg", "data": img_byte_arr.getvalue()}
 
     chaves = [os.environ.get(f"GEMINI_CHAVE_{i}") or st.secrets.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8)]
     chaves = [k for k in chaves if k]
     
-    # SEUS MOTORES ORIGINAIS (PENTACAMADA)
-    motores = [
-        "models/gemini-3-flash-preview", 
-        "models/gemini-2.5-flash", 
-        "models/gemini-2.0-flash", 
-        "models/gemini-2.0-flash-lite", 
-        "models/gemini-flash-latest"
-    ]
+    motores = ["models/gemini-3-flash-preview", "models/gemini-2.5-flash", "models/gemini-2.0-flash", "models/gemini-2.0-flash-lite", "models/gemini-flash-latest"]
 
     for idx, key in enumerate(chaves):
         try:
@@ -150,28 +127,28 @@ def processar_elite(prompt, img_pil):
             for m in motores:
                 try:
                     model = genai.GenerativeModel(m)
-                    # Passamos img_data (o Blob) na lista, o que resolve o erro binário
-                    response = model.generate_content([prompt, img_data])
+                    # Passamos a cópia estruturada do blob
+                    response = model.generate_content([prompt, img_blob])
                     return limpar_texto(response.text), f"CONTA {idx+1} - {m.upper()}"
                 except Exception as e:
-                    if "429" in str(e): break # Cota excedida, pula para próxima chave
+                    if "429" in str(e): break
                     continue
         except: continue
-    return "Erro Crítico: Todas as contas e motores falharam.", "OFFLINE"
+    return "Erro Crítico: Limite de cota atingido em todas as contas.", "OFFLINE"
 
 # --- PROCESSAMENTO ---
 if up and nome_perfil:
     try:
         img_raw = ImageOps.exif_transpose(Image.open(up)).convert("RGB")
         img_raw.thumbnail((600, 600))
-        # Cálculo de IMC para o laudo: $IMC = \frac{peso}{altura^2}$
+        # Cálculo do IMC: $IMC = \frac{peso}{altura^2}$
         imc = peso / ((altura/100)**2)
 
         with st.empty():
             gif_scanner = "https://i.gifer.com/Y1y6.gif"
             st.markdown(f"""
                 <div style="text-align:center; padding:40px; background: rgba(10, 10, 10, 0.95); border-radius:20px; border: 2px solid #3b82f6; box-shadow: 0 0 30px rgba(59, 130, 246, 0.3); margin: 20px 0;">
-                    <img src="{gif_scanner}" width="280" style="border-radius: 15px; margin-bottom: 25px; filter: drop-shadow(0 0 10px #3b82f6);">
+                    <img src="{gif_scanner}" width="280" style="border-radius: 15px; margin-bottom: 25px;">
                     <h2 style="color:#3b82f6; letter-spacing: 4px; font-weight: 800; text-transform: uppercase;">Escaneando Biometria</h2>
                 </div>
             """, unsafe_allow_html=True)
@@ -193,18 +170,18 @@ if up and nome_perfil:
 
         tabs = st.tabs(["📊 Avaliação", "🥗 Nutrição", "💊 Suplementos", "🏋️ Treino", "📜 Dossiê"])
         
-        def render_tab(res, eng, titulo):
+        def display_card(res, eng, titulo):
             st.markdown(f"<div class='result-card-unificado'><small style='color:#3b82f6;'>{eng}</small><br><strong>{titulo}</strong><br><br>{res}</div>", unsafe_allow_html=True)
             st.download_button(f"📥 Baixar {titulo}", data=gerar_pdf_elite(nome_perfil, idade, altura, peso, imc, objetivo, res, titulo), file_name=f"{titulo}.pdf")
 
-        with tabs[0]: render_tab(r1, e1, "Avaliação Corporal")
-        with tabs[1]: render_tab(r2, e2, "Planejamento Nutricional")
-        with tabs[2]: render_tab(r3, e3, "Protocolo de Suplementação")
-        with tabs[3]: render_tab(r4, e4, "Prescrição de Treinamento")
+        with tabs[0]: display_card(r1, e1, "Avaliação Corporal")
+        with tabs[1]: display_card(r2, e2, "Planejamento Nutricional")
+        with tabs[2]: display_card(r3, e3, "Protocolo de Suplementação")
+        with tabs[3]: display_card(r4, e4, "Prescrição de Treinamento")
         with tabs[4]:
-            dossie = f"AVALIAÇÃO:\n{r1}\n\nNUTRIÇÃO:\n{r2}\n\nSUPLEMENTOS:\n{r3}\n\nTREINO:\n{r4}"
+            dossie = f"AVALIAÇÃO:\n{r1}\n\nNUTRIÇÃO:\n{r2}\n\nSUPLEMENTAÇÃO:\n{r3}\n\nTREINO:\n{r4}"
             st.markdown(f"<div class='result-card-unificado'>{dossie}</div>", unsafe_allow_html=True)
-            st.download_button("📥 BAIXAR RELATÓRIO COMPLETO", data=gerar_pdf_elite(nome_perfil, idade, altura, peso, imc, objetivo, dossie, "Dossiê"), file_name="Dossie.pdf")
+            st.download_button("📥 BAIXAR RELATÓRIO COMPLETO", data=gerar_pdf_elite(nome_perfil, idade, altura, peso, imc, objetivo, dossie, "Dossiê"), file_name=f"Dossie_{nome_perfil}.pdf")
 
     except Exception as e: st.error(f"Erro no processamento: {e}")
 
