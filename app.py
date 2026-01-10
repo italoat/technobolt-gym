@@ -14,7 +14,7 @@ st.set_page_config(page_title="TechnoBolt Gym Hub", layout="wide", page_icon="ðŸ
 
 # --- CONEXÃƒO MONGODB ATLAS ---
 # A URL deve ser configurada no Render (Environment Variables) como MONGO_URL
-MONGO_URL = st.secrets.get("MONGO_URL", "mongodb+srv://technobolt:tech@132@cluster0.zbjsvk6.mongodb.net/?appName=Cluster0")
+MONGO_URL = os.environ.get("MONGO_URL", "mongodb+srv://technobolt:tech@132@cluster0.zbjsvk6.mongodb.net/?appName=Cluster0")
 
 @st.cache_resource
 def iniciar_conexao():
