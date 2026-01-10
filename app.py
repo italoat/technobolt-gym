@@ -74,7 +74,7 @@ def gerar_pdf_elite(nome, conteudo, titulo, data_analise):
     pdf.set_auto_page_break(auto=True, margin=15); pdf.add_page()
     pdf.set_fill_color(240, 245, 255); pdf.set_draw_color(59, 130, 246); pdf.rect(10, 50, 190, 20, 'FD')
     pdf.set_xy(15, 52); pdf.set_font("Helvetica", "B", 12); pdf.set_text_color(0, 0, 0)
-    pdf.cell(90, 8, f"ATLETA: {nome.upper()} body"); pdf.cell(0, 8, f"DATA: {data_analise}", ln=True, align="R")
+    pdf.cell(90, 8, f"ATLETA: {nome.upper()}"); pdf.cell(0, 8, f"DATA: {data_analise}", ln=True, align="R")
     pdf.ln(25); pdf.set_font("Helvetica", "B", 14); pdf.set_text_color(59, 130, 246)
     pdf.cell(0, 10, titulo.upper(), ln=True); pdf.line(10, pdf.get_y(), 200, pdf.get_y()); pdf.ln(5)
     pdf.set_text_color(40, 40, 40); pdf.set_font("Helvetica", "", 10)
@@ -133,33 +133,31 @@ if up and nome_perfil:
             
             FORNEÇA 4 RELATÓRIOS TÉCNICOS SEPARADOS RIGOROSAMENTE PELA TAG '[DIVISOR]':
 
-            1. AVALIAÇÃO ANTROPOMÉTRICA: Aja como PhD em Antropometria formado com Certificação Internacional ISAK (Níveis 1 a 4), Cineantropometria Avançada, Ultrassonografia, Bioimpedância Tetrapolar, Especialização em Bioestatística, Padronização de Medidas, Interpretação de DXA e Tomografia para Composição Corporal e Crescimento Humano. Determine Biotipo, BF% e Postura.
+            1. AVALIAÇÃO ANTROPOMÉTRICA: Aja como PhD em Antropometria (ISAK 4, DXA, Tomografia). Use termos técnicos avançados explicando-os intuitivamente entre parênteses. Determine Biotipo, BF% e Postura. Inclua dicas para otimizar a composição corporal.
             
-            2. PLANEJAMENTO NUTRICIONAL: Aja como Nutricionista PhD formado com Pós-graduação em Nutrição Esportiva, Clínica e Funcional, Fitoterapia, Bioquímica do Metabolismo, Gastronomia Funcional, Nutrigenética e Planejamento Dietético Avançado. Determine GET, Macros e Plano Alimentar.
+            2. PLANEJAMENTO NUTRICIONAL: Aja como Nutricionista PhD. Prescreva uma DIETA EXTENSA E COMPLETA. Para cada refeição, forneça ao menos 2 ALTERNATIVAS de alimentos. Use termos como termogênese induzida pela dieta (gasto calórico para digerir), densidade calórica (calorias por volume), etc., explicando-os. Determine GET, Macros e Plano Alimentar.
 
-            3. PROTOCOLO DE SUPLEMENTAÇÃO: Aja como Especialista PhD em Suplementação Esportiva, Farmacologia do Exercício, Bioquímica Aplicada, Fitoterapia na Performance e Mecanismos Moleculares. Indique de 3 a 10 suplementos via Nexo Metabólico.
+            3. PROTOCOLO DE SUPLEMENTAÇÃO: Aja como PhD em Farmacologia. Indique 3 a 10 suplementos. Use termos como biodisponibilidade (absorção), sinergismo (ação conjunta), explicando-os. Inclua dicas de timing nutricional.
 
-            4. PRESCRIÇÃO DE TREINO: Aja como Personal Trainer PhD em Biomecânica e Cinesiologia, Fisiologia do Exercício, Metodologia da Preparação Física, Musculação Avançada, LPO e HIIT. Prescreva treino de 7 dias com 8 a 10 exercícios por dia. 
+            4. PRESCRIÇÃO DE TREINO: Aja como PhD em Biomecânica. Prescreva treino de 7 dias com 8 a 10 exercícios por dia. Use termos como braço de momento (alavanca), hipertrofia sarcoplasmática (volume fluido), explicando-os. 
                ESTRUTURA: NOME DO EXERCÍCIO | SÉRIES | REPETIÇÕES | JUSTIFICATIVA BIOMECÂNICA DETALHADA.
                IMPORTANTE: NÃO USE TABELAS MARKDOWN. Use listas numeradas.
             
-            REGRAS: Use tópicos curtos. Proibido saudações. Linguagem de Elite. Coloque a tag '[DIVISOR]' exatamente entre os blocos."""
+            REGRAS GERAIS: Use linguagem de elite. Explique TODO termo técnico entre parênteses de forma intuitiva. Adicione dicas de "Performance Master" em cada relatório para maximizar o {objetivo}. Coloque a tag '[DIVISOR]' exatamente entre os blocos."""
             
             res, eng = realizar_scan_phd(prompt, img_raw)
             if res:
                 partes = res.split('[DIVISOR]')
-                # Atribuição rigorosa para garantir ordem correta nas abas
-                p1 = partes[0] if len(partes) > 0 else "Erro na Avaliação"
-                p2 = partes[1] if len(partes) > 1 else "Erro na Nutrição"
-                p3 = partes[2] if len(partes) > 2 else "Erro na Suplementação"
-                p4 = partes[3] if len(partes) > 3 else "Erro no Treino"
+                p1 = partes[0] if len(partes) > 0 else "Erro"
+                p2 = partes[1] if len(partes) > 1 else "Erro"
+                p3 = partes[2] if len(partes) > 2 else "Erro"
+                p4 = partes[3] if len(partes) > 3 else "Erro"
                 salvar_analise(user, p1, p2, p3, p4, eng); st.rerun()
 
 # --- EXIBIÇÃO ---
 if user in dados_salvos:
     d = dados_salvos[user]
     tabs = st.tabs(["📊 Avaliação", "🥗 Nutrição", "💊 Suplementos", "🏋️ Treino", "📜 Dossiê"])
-    
     conteudos = [d['r1'], d['r2'], d['r3'], d['r4']]
     titulos = ["Avaliacao", "Nutricao", "Suplementos", "Treino"]
     
