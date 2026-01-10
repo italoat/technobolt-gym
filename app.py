@@ -11,23 +11,23 @@ import re
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="TechnoBolt Gym Hub", layout="wide", page_icon="🏋️")
 
-# --- DESIGN SYSTEM TECHNOBOLT (BLINDAGEM TOTAL ANTI-ERRO) ---
+# --- DESIGN SYSTEM TECHNOBOLT (CORREÇÃO DA SETA E VAZAMENTO) ---
 st.markdown("""
 <style>
-    /* 1. FUNDO E FONTES */
     .stApp { background-color: #000000 !important; color: #ffffff !important; }
     [data-testid="stHeader"], [data-testid="stSidebar"] { background-color: #000000 !important; }
     html, body, [class*="st-"] { font-family: 'Inter', sans-serif; color: #ffffff !important; }
 
-    /* 2. FIX DEFINITIVO DA SETA (OCULTA O TEXTO "KEYBOARD_DOUBLE...") */
+    /* FIX DEFINITIVO DA SETA: Oculta o texto residual e mantém o ícone */
     [data-testid="stSidebarCollapseButton"] {
         color: transparent !important;
         font-size: 0px !important;
         background-color: transparent !important;
         border: none !important;
     }
-    [data-testid="stSidebarCollapseButton"] span {
-        display: none !important; 
+    [data-testid="stSidebarCollapseButton"] * {
+        font-size: 0px !important;
+        color: transparent !important;
     }
     [data-testid="stSidebarCollapseButton"] svg {
         fill: #3b82f6 !important;
@@ -36,7 +36,7 @@ st.markdown("""
         height: 28px !important;
     }
 
-    /* 3. BOTÕES E CARDS */
+    /* BOTÕES E CARDS */
     .stButton > button, .stDownloadButton > button {
         background-color: #333333 !important;
         color: #ffffff !important;
@@ -59,14 +59,11 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- LIMPEZA DE TEXTO PARA PDF ---
 def limpar_texto(texto):
     texto = texto.replace('**', '').replace('###', '').replace('##', '').replace('#', '')
     texto = texto.replace('*', '•')
-    texto = re.sub(r'\n\s*\n', '\n', texto)
-    return texto.strip()
+    return re.sub(r'\n\s*\n', '\n', texto).strip()
 
-# --- GERAÇÃO DE PDF PROFISSIONAL ---
 class TechnoBoltPDF(FPDF):
     def header(self):
         self.set_fill_color(0, 0, 0)
@@ -116,14 +113,20 @@ with st.sidebar:
     altura = st.number_input("Altura (cm)", 100, 250, 175)
     peso = st.number_input("Peso (kg)", 30.0, 250.0, 80.0)
     objetivo = st.selectbox("Objetivo", ["Hipertrofia", "Lipólise", "Performance", "Postural"])
-    up = st.file_uploader("📸 Foto para Análise", type=['jpg', 'jpeg', 'png'])
+    up = st.file_uploader("📸 Foto Bio Análise", type=['jpg', 'jpeg', 'png'])
 
-# --- MOTOR PENTACAMADA COM TRATAMENTO "BLOB" (CORRIGE BYTEARRAY) ---
+# --- MOTOR PENTACAMADA COM TRATAMENTO DE IMAGEM BLINDADO (RESOVE BYTEARRAY) ---
+
 def processar_elite(prompt, img_pil):
-    # Converte PIL para bytes estruturados (Blob) para evitar erro de classe binária
+    # O Gemini falha com bytearray bruto; precisamos de um dicionário MIME estruturado.
     img_byte_arr = io.BytesIO()
     img_pil.save(img_byte_arr, format='JPEG')
-    img_blob = {"mime_type": "image/jpeg", "data": img_byte_arr.getvalue()}
+    
+    # Esta é a estrutura exata exigida pelo SDK para dados multimodais
+    img_blob = {
+        'mime_type': 'image/jpeg',
+        'data': img_byte_arr.getvalue()
+    }
 
     chaves = [os.environ.get(f"GEMINI_CHAVE_{i}") or st.secrets.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8)]
     chaves = [k for k in chaves if k]
@@ -142,20 +145,22 @@ def processar_elite(prompt, img_pil):
             for m in motores:
                 try:
                     model = genai.GenerativeModel(m)
+                    # Passamos img_blob como um item da lista, não os bytes diretamente
                     response = model.generate_content([prompt, img_blob])
                     return limpar_texto(response.text), f"CONTA {idx+1} - {m.upper()}"
                 except Exception as e:
                     if "429" in str(e): break
                     continue
         except: continue
-    return "Erro Crítico: Todas as contas atingiram o limite.", "OFFLINE"
+    return "Erro Crítico: Limite de cota atingido em todas as contas.", "OFFLINE"
 
 # --- FLUXO DE PROCESSAMENTO ---
 if up and nome_perfil:
     try:
         img_raw = ImageOps.exif_transpose(Image.open(up)).convert("RGB")
         img_raw.thumbnail((600, 600))
-        # Cálculo de IMC para o laudo: $IMC = \frac{peso}{altura^2}$
+        # Cálculo de IMC utilizando LaTeX para precisão técnica
+        # $IMC = \frac{peso}{altura^2}$
         imc = peso / ((altura/100)**2)
 
         with st.empty():
@@ -201,10 +206,9 @@ if up and nome_perfil:
             st.markdown(f"<div class='result-card-unificado'>{dossie}</div>", unsafe_allow_html=True)
             st.download_button("📥 BAIXAR DOSSIÊ", data=gerar_pdf_elite(nome_perfil, idade, altura, peso, imc, objetivo, dossie, "Dossiê"), file_name="Dossie.pdf")
 
-    except Exception as e: st.error(f"Erro Crítico: {e}")
+    except Exception as e: st.error(f"Erro no processamento: {e}")
 
 else:
-    # --- TELA INICIAL (RESTAURADA) ---
     st.markdown("""
         <div class="result-card-unificado" style="text-align:center;">
             <div style="font-size: 50px; margin-bottom: 20px;">👤</div>
