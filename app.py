@@ -31,7 +31,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- SISTEMA DE PERSISTÊNCIA (JSON) ---
+# --- PERSISTÊNCIA JSON ---
 DB_FILE = "technobolt_data.json"
 
 def carregar_dados():
@@ -83,7 +83,7 @@ def gerar_pdf_elite(nome, conteudo, titulo, data_analise):
     pdf_output = pdf.output(dest='S')
     return bytes(pdf_output) if not isinstance(pdf_output, str) else bytes(pdf_output, 'latin-1')
 
-# --- MOTOR DE IA (PENTACAMADA) ---
+# --- MOTOR DE IA ---
 def realizar_scan_phd(prompt_mestre, img_pil):
     img_byte_arr = io.BytesIO(); img_pil.save(img_byte_arr, format='JPEG')
     img_blob = {"mime_type": "image/jpeg", "data": img_byte_arr.getvalue()}
@@ -131,27 +131,39 @@ if up and nome_perfil:
         with st.status("🧬 PROCESSANDO PROTOCOLO TECHNOBOLT..."):
             prompt = f"""VOCÊ É UM CONSELHO DE ESPECIALISTAS PHD DA TECHNOBOLT GYM. ANÁLISE PARA: {nome_perfil} | OBJETIVO: {objetivo} | IMC: {imc:.2f}
             
-            FORNEÇA 4 RELATÓRIOS TÉCNICOS SEPARADOS RIGOROSAMENTE PELA TAG '[DIVISOR]':
+            ESCREVA 4 RELATÓRIOS TÉCNICOS LOGO ABAIXO DAS SEGUINTES TAGS:
 
-            1. AVALIAÇÃO ANTROPOMÉTRICA: Aja como PhD em Antropometria (ISAK 4, DXA, Tomografia). Use termos técnicos avançados explicando-os intuitivamente entre parênteses. Determine Biotipo, BF% e Postura. Inclua dicas para otimizar a composição corporal.
+            [AVALIACAO]
+            Aja como PhD em Antropometria (ISAK 4, DXA). Use termos técnicos avançados explicando-os intuitivamente entre parênteses. Determine Biotipo, BF% e Postura. Inclua dicas para otimizar a composição corporal.
+
+            [NUTRICAO]
+            Aja como Nutricionista PhD. Prescreva uma DIETA EXTENSA E COMPLETA. Para cada refeição, forneça ao menos 2 ALTERNATIVAS de alimentos. Use termos como termogênese induzida pela dieta (gasto calórico para digerir), densidade calórica (calorias por volume), etc., explicando-os. Determine GET, Macros e Plano Alimentar.
+
+            [SUPLEMENTACAO]
+            Aja como PhD em Farmacologia. Indique 3 a 10 suplementos. Use termos como biodisponibilidade (absorção), sinergismo (ação conjunta), explicando-os. Inclua dicas de timing nutricional.
+
+            [TREINO]
+            Aja como PhD em Biomecânica. Prescreva treino de 7 dias com 8 a 10 exercícios por dia. Use termos como braço de momento (alavanca), hipertrofia sarcoplasmática (volume fluido), explicando-os. 
+            ESTRUTURA: NOME DO EXERCÍCIO | SÉRIES | REPETIÇÕES | JUSTIFICATIVA BIOMECÂNICA DETALHADA.
+            NÃO USE TABELAS MARKDOWN. Use listas numeradas.
             
-            2. PLANEJAMENTO NUTRICIONAL: Aja como Nutricionista PhD. Prescreva uma DIETA EXTENSA E COMPLETA. Para cada refeição, forneça ao menos 2 ALTERNATIVAS de alimentos. Use termos como termogênese induzida pela dieta (gasto calórico para digerir), densidade calórica (calorias por volume), etc., explicando-os. Determine GET, Macros e Plano Alimentar.
-
-            3. PROTOCOLO DE SUPLEMENTAÇÃO: Aja como PhD em Farmacologia. Indique 3 a 10 suplementos. Use termos como biodisponibilidade (absorção), sinergismo (ação conjunta), explicando-os. Inclua dicas de timing nutricional.
-
-            4. PRESCRIÇÃO DE TREINO: Aja como PhD em Biomecânica. Prescreva treino de 7 dias com 8 a 10 exercícios por dia. Use termos como braço de momento (alavanca), hipertrofia sarcoplasmática (volume fluido), explicando-os. 
-               ESTRUTURA: NOME DO EXERCÍCIO | SÉRIES | REPETIÇÕES | JUSTIFICATIVA BIOMECÂNICA DETALHADA.
-               IMPORTANTE: NÃO USE TABELAS MARKDOWN. Use listas numeradas.
-            
-            REGRAS GERAIS: Use linguagem de elite. Explique TODO termo técnico entre parênteses de forma intuitiva. Adicione dicas de "Performance Master" em cada relatório para maximizar o {objetivo}. Coloque a tag '[DIVISOR]' exatamente entre os blocos."""
+            REGRAS GERAIS: Explique TODO termo técnico entre parênteses. Adicione dicas de "Performance Master" em cada seção. Use linguagem de Elite."""
             
             res, eng = realizar_scan_phd(prompt, img_raw)
             if res:
-                partes = res.split('[DIVISOR]')
-                p1 = partes[0] if len(partes) > 0 else "Erro"
-                p2 = partes[1] if len(partes) > 1 else "Erro"
-                p3 = partes[2] if len(partes) > 2 else "Erro"
-                p4 = partes[3] if len(partes) > 3 else "Erro"
+                # Lógica de extração blindada por tags
+                def extrair(tag_inicio, proxima_tag=None):
+                    try:
+                        pattern = f"\\{tag_inicio}\\s*(.*?)\\s*(?=\\{proxima_tag}|$)" if proxima_tag else f"\\{tag_inicio}\\s*(.*)"
+                        match = re.search(pattern, res, re.DOTALL | re.IGNORECASE)
+                        return match.group(1).strip() if match else "Relatório em processamento..."
+                    except: return "Erro na extração."
+
+                p1 = extrair("[AVALIACAO]", "[NUTRICAO]")
+                p2 = extrair("[NUTRICAO]", "[SUPLEMENTACAO]")
+                p3 = extrair("[SUPLEMENTACAO]", "[TREINO]")
+                p4 = extrair("[TREINO]", None)
+                
                 salvar_analise(user, p1, p2, p3, p4, eng); st.rerun()
 
 # --- EXIBIÇÃO ---
@@ -168,7 +180,7 @@ if user in dados_salvos:
             st.download_button(label=f"📥 Baixar PDF {titulos[idx]}", data=pdf_data, file_name=f"{titulos[idx]}_TechnoBolt.pdf", mime="application/pdf", key=f"btn_{idx}")
     
     with tabs[4]:
-        completo = f"{d['r1']}\n\n{d['r2']}\n\n{d['r3']}\n\n{d['r4']}"
+        completo = f"AVALIAÇÃO:\n{d['r1']}\n\nNUTRIÇÃO:\n{d['r2']}\n\nSUPLEMENTAÇÃO:\n{d['r3']}\n\nTREINO:\n{d['r4']}"
         st.markdown(f"<div class='result-card-unificado'>{completo}</div>", unsafe_allow_html=True)
         pdf_full = gerar_pdf_elite(nome_perfil, completo, "Dossie Completo", d['data'])
         st.download_button(label="📥 BAIXAR DOSSIÊ COMPLETO", data=pdf_full, file_name="Dossie_TechnoBolt.pdf", mime="application/pdf", key="btn_full")
