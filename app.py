@@ -136,7 +136,7 @@ def realizar_scan_phd(prompt_mestre, img_pil):
 USUARIOS_DB = {
     "admin": "admin123", "pedro.santana": "senha", "luiza.trovao": "senha",
     "anderson.bezerra": "senha", "fabricio.felix": "senha", "jackson.antonio": "senha",
-    "italo.trovao": "senha", "julia.fernanda": "senha", "convidado": "senha"
+    "italo.trovao": "senha", "julia.fernanda": "senha", "convidado": "senha", "patricie.medova": "senha"
 }
 if "logado" not in st.session_state: st.session_state.logado = False
 
