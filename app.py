@@ -13,7 +13,7 @@ from pymongo import MongoClient
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="TechnoBolt Gym Hub", layout="wide", page_icon="🏋️")
 
-# --- CONEXÃO MONGODB BLINDADA (RENDER) ---
+# --- CONEXÃO MONGODB BLINDADA ---
 @st.cache_resource
 def iniciar_conexao():
     try:
@@ -82,16 +82,12 @@ def gerar_pdf_elite(nome, conteudo, titulo, data_analise):
     pdf_out = pdf.output(dest='S')
     return bytes(pdf_out, 'latin-1') if isinstance(pdf_out, str) else bytes(pdf_out)
 
-# --- RESTAURAÇÃO: MOTOR DE IA (PENTACAMADA DE ALTA DISPONIBILIDADE) ---
+# --- RESTAURAÇÃO: MOTOR DE IA (PENTACAMADA COMPLETA 2026) ---
 def realizar_scan_phd(prompt_mestre, img_pil):
     img_byte_arr = io.BytesIO(); img_pil.save(img_byte_arr, format='JPEG')
     img_blob = {"mime_type": "image/jpeg", "data": img_byte_arr.getvalue()}
-    
-    # Rodízio de chaves de API (1 a 7)
     chaves = [os.environ.get("GEMINI_CHAVE_{}".format(i)) for i in range(1, 8)]
     chaves = [k for k in chaves if k]
-    
-    # Motores em ordem de potência/estabilidade para 2026
     motores = [
         "models/gemini-3-flash-preview", 
         "models/gemini-2.5-flash", 
@@ -99,7 +95,6 @@ def realizar_scan_phd(prompt_mestre, img_pil):
         "models/gemini-2.0-flash-lite", 
         "models/gemini-flash-latest"
     ]
-    
     for idx, key in enumerate(chaves):
         try:
             genai.configure(api_key=key)
@@ -108,31 +103,34 @@ def realizar_scan_phd(prompt_mestre, img_pil):
                     model = genai.GenerativeModel(m)
                     response = model.generate_content([prompt_mestre, img_blob])
                     return response.text, "CONTA {} - {}".format(idx+1, m.upper())
-                except: continue # Se o motor falhar, tenta o próximo motor da mesma chave
-        except: continue # Se a chave estiver offline/bloqueada, tenta a próxima chave
+                except: continue
+        except: continue
     return None, "OFFLINE"
 
-# --- ACESSO ---
+# --- LOGIN E CADASTRO ---
 if "logado" not in st.session_state: st.session_state.logado = False
-
 if not st.session_state.logado:
     t1, t2 = st.tabs(["🔐 Login Atleta", "📝 Solicitar Cadastro"])
     with t1:
-        u = st.text_input("Usuário").lower().strip(); p = st.text_input("Senha", type="password")
+        u_log = st.text_input("Usuário", key="login_u").lower().strip()
+        p_log = st.text_input("Senha", type="password", key="login_p")
         if st.button("ACESSAR HUB"):
-            udata = db.usuarios.find_one({"usuario": u}) if db is not None else None
-            if udata and udata['senha'] == p and udata['status'] == 'ativo':
-                st.session_state.logado = True; st.session_state.user_atual = u; st.session_state.is_admin = udata.get('is_admin', False); st.rerun()
-            else: st.error("Acesso negado ou conta em análise.")
+            udata = db.usuarios.find_one({"usuario": u_log}) if db is not None else None
+            if udata and udata['senha'] == p_log and udata['status'] == 'ativo':
+                st.session_state.logado = True; st.session_state.user_atual = u_log; st.session_state.is_admin = udata.get('is_admin', False); st.rerun()
+            else: st.error("Acesso negado.")
     with t2:
-        n_n = st.text_input("Nome Completo"); n_u = st.text_input("Login").lower().strip(); n_p = st.text_input("Senha", type="password")
+        n_reg = st.text_input("Nome Completo", key="reg_n")
+        u_reg = st.text_input("Login Desejado", key="reg_u").lower().strip()
+        p_reg = st.text_input("Senha Desejada", type="password", key="reg_p")
+        g_reg = st.selectbox("Gênero Biológico", ["Masculino", "Feminino"], key="reg_g")
         if st.button("SOLICITAR ACESSO"):
-            if n_n and n_u and n_p and db is not None:
-                if db.usuarios.find_one({"usuario": n_u}): st.error("Login já em uso.")
+            if n_reg and u_reg and p_reg and db is not None:
+                if db.usuarios.find_one({"usuario": u_reg}): st.error("Login já existe.")
                 else:
                     db.usuarios.insert_one({
-                        "usuario": n_u, "senha": n_p, "nome": n_n, "status": "pendente", 
-                        "avaliacoes_restantes": 0, "historico_dossies": [], 
+                        "usuario": u_reg, "senha": p_reg, "nome": n_n, "genero": g_reg,
+                        "status": "pendente", "avaliacoes_restantes": 0, "historico_dossies": [],
                         "data_renovacao": datetime.now().strftime("%d/%m/%Y")
                     })
                     st.success("Cadastro solicitado!")
@@ -140,112 +138,98 @@ if not st.session_state.logado:
 
 user_doc = db.usuarios.find_one({"usuario": st.session_state.user_atual}) if db is not None else {}
 
-# --- ADMIN PANEL (TABULAR & EDITÁVEL) ---
+# --- ADMIN PANEL ---
 if st.session_state.is_admin and db is not None:
-    with st.expander("🛠️ GESTÃO E CONTROLE DE ATLETAS"):
+    with st.expander("🛠️ GESTÃO DE ATLETAS"):
         st.markdown("<div class='admin-table-header'>Controle de Acessos e Créditos</div>", unsafe_allow_html=True)
-        h1, h2, h3, h4, h5 = st.columns([2, 2, 1, 1, 2])
-        h1.write("**Nome / Usuário**"); h2.write("**Status**"); h3.write("**Créditos**"); h4.write("**Renovação**"); h5.write("**Ações**")
+        h1, h2, h3, h4, h5 = st.columns([2, 1, 1, 1, 2])
+        h1.write("**Atleta**"); h2.write("**Status**"); h3.write("**Gênero**"); h4.write("**Créditos**"); h5.write("**Ações**")
         st.divider()
-
-        usuarios_lista = list(db.usuarios.find({"usuario": {"$ne": "admin"}}))
-        for usr in usuarios_lista:
-            c1, c2, c3, c4, c5 = st.columns([2, 2, 1, 1, 2])
+        for usr in list(db.usuarios.find({"usuario": {"$ne": "admin"}})):
+            c1, c2, c3, c4, c5 = st.columns([2, 1, 1, 1, 2])
             c1.write(f"**{usr.get('nome', 'N/A')}**\n({usr['usuario']})")
-            
-            opcoes_status = ["pendente", "ativo", "inativo"]
-            current_status = usr.get('status', 'pendente')
-            new_status = c2.selectbox(f"St_{usr['usuario']}", opcoes_status, index=opcoes_status.index(current_status), label_visibility="collapsed")
-            if new_status != current_status:
-                db.usuarios.update_one({"usuario": usr['usuario']}, {"$set": {"status": new_status}})
-                st.toast(f"Status de {usr['usuario']} atualizado!")
-            
-            new_credits = c3.number_input(f"Cr_{usr['usuario']}", 0, 100, usr.get('avaliacoes_restantes', 0), label_visibility="collapsed")
-            if new_credits != usr.get('avaliacoes_restantes'):
-                db.usuarios.update_one({"usuario": usr['usuario']}, {"$set": {"avaliacoes_restantes": new_credits}})
-            
-            c4.write(usr.get('data_renovacao', "---"))
-            
-            if c5.button(f"Renovar (4)", key=f"ren_{usr['usuario']}"):
-                hoje = datetime.now().strftime("%d/%m/%Y")
-                db.usuarios.update_one({"usuario": usr['usuario']}, {"$set": {"avaliacoes_restantes": 4, "status": "ativo", "data_renovacao": hoje}})
-                st.rerun()
+            op_st = ["pendente", "ativo", "inativo"]; nst = c2.selectbox(f"S_{usr['usuario']}", op_st, index=op_st.index(usr.get('status', 'pendente')), label_visibility="collapsed")
+            if nst != usr.get('status'): db.usuarios.update_one({"usuario": usr['usuario']}, {"$set": {"status": nst}}); st.rerun()
+            c3.write(usr.get('genero', 'N/A'))
+            ncr = c4.number_input(f"C_{usr['usuario']}", 0, 100, usr.get('avaliacoes_restantes', 0), label_visibility="collapsed")
+            if ncr != usr.get('avaliacoes_restantes'): db.usuarios.update_one({"usuario": usr['usuario']}, {"$set": {"avaliacoes_restantes": ncr}})
+            if c5.button(f"Renovar (4)", key=f"r_{usr['usuario']}"):
+                db.usuarios.update_one({"usuario": usr['usuario']}, {"$set": {"avaliacoes_restantes": 4, "status": "ativo", "data_renovacao": datetime.now().strftime("%d/%m/%Y")}}); st.rerun()
             st.divider()
 
-# --- SIDEBAR & DASHBOARD ---
+# --- SIDEBAR ---
 with st.sidebar:
     st.header(f"Atleta: {user_doc.get('nome', st.session_state.user_atual).split()[0]}")
-    st.write("Créditos: {}".format(user_doc.get('avaliacoes_restantes', 0)))
-    if st.button("SAIR"): st.session_state.logado = False; st.rerun()
-    
+    st.write(f"Gênero: **{user_doc.get('genero', 'Masculino')}**")
+    st.write("Créditos: **{}**".format(user_doc.get('avaliacoes_restantes', 0)))
+    if st.button("LOGOUT"): st.session_state.logado = False; st.rerun()
     if user_doc.get('historico_dossies'):
         st.divider(); st.subheader("📈 Evolução Biométrica")
-        pesos = [a.get('peso_reg', 80) for a in user_doc['historico_dossies']]
-        datas = [a['data'].split()[0] for a in user_doc['historico_dossies']]
-        if len(pesos) > 1:
-            df_evolucao = pd.DataFrame({"Data": datas, "Peso (kg)": pesos})
-            st.line_chart(df_evolucao.set_index("Data"))
-    
+        df_ev = pd.DataFrame({"Data": [a['data'].split()[0] for a in user_doc['historico_dossies']], "Peso (kg)": [a.get('peso_reg', 80) for a in user_doc['historico_dossies']]})
+        if len(df_ev) > 1: st.line_chart(df_ev.set_index("Data"))
     st.divider()
-    peso_atual = st.number_input("Peso (kg)", 30.0, 250.0, 80.0); altura = st.number_input("Altura (cm)", 100, 250, 175)
+    peso_at = st.number_input("Peso (kg)", 30.0, 250.0, 80.0); altura = st.number_input("Altura (cm)", 100, 250, 175)
     obj = st.selectbox("Objetivo", ["Hipertrofia", "Lipólise", "Performance", "Postural"])
-    res_alim = st.text_area("Restrições Alimentares", "Nenhuma"); res_med = st.text_area("Medicamentos", "Nenhum"); res_fis = st.text_area("Restrições Físicas", "Nenhuma")
+    r_a = st.text_area("Restrições Alimentares", "Nenhuma"); r_m = st.text_area("Medicamentos", "Nenhum"); r_f = st.text_area("Restrições Físicas", "Nenhuma")
     up = st.file_uploader("📸 Scanner", type=['jpg', 'jpeg', 'png'])
 
-# --- PROCESSAMENTO: PROMPTS TÉCNICOS PHD ---
-if up and st.button("🚀 INICIAR ANÁLISE CLÍNICA"):
-    if (user_doc.get('avaliacoes_restantes', 0) > 0 or st.session_state.is_admin) and db is not None:
-        with st.status("🧬 EXECUTANDO PROTOCOLO TECHNOBOLT..."):
-            img = ImageOps.exif_transpose(Image.open(up)).convert("RGB")
-            img.thumbnail((600, 600)); imc = peso_atual / ((altura/100)**2)
-            
-            prompt_mestre = f"""VOCÊ É UM CONSELHO TÉCNICO DE ESPECIALISTAS DA TECHNOBOLT GYM. 
-            PACIENTE/ATLETA: {user_doc.get('nome')} | OBJETIVO: {obj} | IMC: {imc:.2f}
-            RESTRIÇÕES: Alimentar: {res_alim} | Médica: {res_med} | Física: {res_fis}
+# --- PROCESSAMENTO (REFORÇO DE ESPECIALIDADES E FORMAÇÕES) ---
 
-            ESCREVA 4 RELATÓRIOS TÉCNICOS SEPARADOS PELAS TAGS ABAIXO. REMOVA CABEÇALHOS REDUNDANTES.
-            USE LINGUAGEM ESTRITAMENTE TÉCNICA E PROFISSIONAL. EXPLIQUE TERMOS TÉCNICOS EM PARÊNTESES.
+if up and st.button("🚀 INICIAR ANALISE CLINICA"):
+    if (user_doc.get('avaliacoes_restantes', 0) > 0 or st.session_state.is_admin) and db is not None:
+        with st.status("🧬 EXECUTANDO PROTOCOLO TECHNOBOLT V19..."):
+            img = ImageOps.exif_transpose(Image.open(up)).convert("RGB")
+            img.thumbnail((600, 600)); imc = peso_at / ((altura/100)**2)
+            gen = user_doc.get('genero', 'Masculino')
+            
+            prompt_mestre = f"""VOCÊ É UM CONSELHO TÉCNICO DE ELITE DA TECHNOBOLT GYM. 
+            ATLETA: {user_doc.get('nome')} | GÊNERO: {gen} | OBJETIVO: {obj} | IMC: {imc:.2f}
+            RESTRIÇÕES: Alimentar: {r_a} | Médica: {r_m} | Física: {r_f}
+
+            ESCREVA 4 RELATÓRIOS TÉCNICOS. REMOVA TÍTULOS ACADÊMICOS. USE LINGUAGEM TÉCNICA COM EXPLICAÇÕES INTUITIVAS.
+            CONSIDERE A FISIOLOGIA ESPECÍFICA DO GÊNERO {gen}.
 
             [AVALIACAO]
-            Aja como Especialista em Antropometria e Cineantropometria Avançada. Analise a imagem para determinar o Somatotipo, BF% estimado e desvios cinemáticos. FOCO: Identificar assimetrias miofasciais e alinhamento de processos acromiais e pélvicos. Considere restrição física: {res_fis}. 
+            Aja como Especialista com formações em Antropometria (ISAK 4), Cineantropometria e Ultrassonografia para Composição Corporal. 
+            Analise somatotipo, BF% (ajustado para {gen}) e desvios cinemáticos. FOCO: Assimetrias miofasciais e alinhamento acromial/pélvico. 
+            Considere restrição física: {r_f}. 
+            
             AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações técnicas para homeostase e correção postural imediata.
 
             [NUTRICAO]
-            Aja como Especialista em Nutrologia e Nutrogenômica. Prescreva planejamento dietético extenso (2 alternativas por refeição). FOCO: Flexibilidade Metabólica e Gestão da Carga Glicêmica. Respeite: {res_alim}. Explique Termogênese Induzida e Densidade Nutricional.
-            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações para otimizar a sensibilidade insulínica e síntese proteica.
+            Aja como Especialista com formações em Nutrologia, Nutrogenômica e Bioquímica do Metabolismo. 
+            Planejamento dietético extenso (2 opções/ref). FOCO: Flexibilidade Metabólica e Modulação da Insulina. 
+            Respeite rigorosamente: {r_a}. Explique Termogênese Induzida e Densidade Nutricional.
+            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações para otimizar a síntese proteica e aporte energético celular.
 
             [SUPLEMENTACAO]
-            Aja como Especialista em Farmacodinâmica e Suplementação Esportiva. Indique 3 a 10 suplementos via Nexo Metabólico. FOCO: Ativação da via mTOR e modulação do Cortisol matinal. Verifique interações com: {res_med}. Explique Biodisponibilidade e Sinergismo Nutricional.
+            Aja como Especialista com formações em Farmacologia Esportiva, Medicina Ortomolecular e Fitoterapia. 
+            Indique 3-10 itens via Nexo Metabólico. FOCO: Ativação da via mTOR e modulação do Cortisol matinal conforme fisiologia de {gen}. 
+            Verifique: {r_m}. Explique Biodisponibilidade e Sinergismo Nutricional.
+            
             AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações sobre janelas de absorção e empilhamento ergogênico.
 
             [TREINO]
-            Aja como Especialista em Biomecânica de Alta Performance. Protocolo de 7 dias (8-10 exerc/dia). FOCO: Perfil de Resistência e Relação Comprimento-Tensão. Adapte para: {res_fis}. Estrutura: NOME DO EXERCÍCIO | SÉRIES | REPS | JUSTIFICATIVA TÉCNICA (SEM TABELAS). Explique Braço de Momento e Tensão Mecânica.
-            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações sobre cadência, controle de fundo de série e recrutamento motor.
+            Aja como Especialista com formações em Biomecânica de Alta Performance, Neuromecânica e Cinesiologia Clínica. 
+            Protocolo de 7 dias (8-10 exerc/dia). FOCO: Perfis de Resistência e Relação Comprimento-Tensão. 
+            Adapte para: {r_f}. Estrutura: NOME | SÉRIES | REPS | JUSTIFICATIVA TÉCNICA.
+            
+            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações sobre cadência, controle tônico e recrutamento motor para {obj}.
             """
             
-            res, engine_info = realizar_scan_phd(prompt_mestre, img)
+            res, eng = realizar_scan_phd(prompt_mestre, img)
             if res:
                 def ext(ti, tp=None):
                     p = f"\\{ti}\\s*(.*?)\\s*(?=\\{ti}|$)" if tp is None else f"\\{ti}\\s*(.*?)\\s*(?=\\{tp}|$)"
-                    m = re.search(p, res, re.DOTALL | re.IGNORECASE)
-                    return m.group(1).strip() if m else "..."
-                
-                analise = {
-                    "data": datetime.now().strftime("%d/%m/%Y %H:%M"), "peso_reg": peso_atual,
-                    "r1": ext("[AVALIACAO]", "[NUTRICAO]"), "r2": ext("[NUTRICAO]", "[SUPLEMENTACAO]"),
-                    "r3": ext("[SUPLEMENTACAO]", "[TREINO]"), "r4": ext("[TREINO]", None),
-                    "engine": engine_info
-                }
-                db.usuarios.update_one({"usuario": st.session_state.user_atual}, {
-                    "$push": {"historico_dossies": analise},
-                    "$inc": {"avaliacoes_restantes": -1} if not st.session_state.is_admin else {"avaliacoes_restantes": 0}
-                })
+                    m = re.search(p, res, re.DOTALL | re.IGNORECASE); return m.group(1).strip() if m else "..."
+                analise = {"data": datetime.now().strftime("%d/%m/%Y %H:%M"), "peso_reg": peso_at, "r1": ext("[AVALIACAO]", "[NUTRICAO]"), "r2": ext("[NUTRICAO]", "[SUPLEMENTACAO]"), "r3": ext("[SUPLEMENTACAO]", "[TREINO]"), "r4": ext("[TREINO]", None)}
+                db.usuarios.update_one({"usuario": st.session_state.user_atual}, {"$push": {"historico_dossies": analise}, "$inc": {"avaliacoes_restantes": -1} if not st.session_state.is_admin else {"avaliacoes_restantes": 0}})
                 st.rerun()
 
 # --- EXIBIÇÃO ---
 if user_doc and user_doc.get('historico_dossies'):
     hist = user_doc['historico_dossies']
-    sel = st.selectbox("📅 Selecionar Laudo Histórico", [a['data'] for a in reversed(hist)])
+    sel = st.selectbox("📅 Laudos Anteriores", [a['data'] for a in reversed(hist)])
     d = next(a for a in hist if a['data'] == sel)
     tabs = st.tabs(["📊 Antropometria", "🥗 Nutrologia", "💊 Suplementação", "🏋️ Biomecânica", "📜 Laudo Completo"])
     cs = [d['r1'], d['r2'], d['r3'], d['r4']]; ts = ["Antropometria", "Nutrologia", "Suplementacao", "Biomecanica"]
@@ -253,7 +237,3 @@ if user_doc and user_doc.get('historico_dossies'):
         with tab:
             st.markdown("<div class='result-card-unificado'>{}</div>".format(cs[i].replace('\n', '<br>')), unsafe_allow_html=True)
             st.download_button("📥 PDF {}".format(ts[i]), data=gerar_pdf_elite(user_doc.get('nome'), cs[i], ts[i], d['data']), file_name="{}.pdf".format(ts[i]), key="{}_{}".format(ts[i], sel))
-    with tabs[4]:
-        f_t = "LAUDO ANTROPOMÉTRICO:\n{}\n\nLAUDO NUTROLÓGICO:\n{}\n\nLAUDO DE SUPLEMENTAÇÃO:\n{}\n\nLAUDO BIOMECÂNICO:\n{}".format(d['r1'], d['r2'], d['r3'], d['r4'])
-        st.markdown("<div class='result-card-unificado'>{}</div>".format(f_t.replace('\n', '<br>')), unsafe_allow_html=True)
-        st.download_button("📥 BAIXAR LAUDO COMPLETO", data=gerar_pdf_elite(user_doc.get('nome'), f_t, "Laudo Completo", d['data']), file_name="Laudo_Completo.pdf", key="f_{}".format(sel))
