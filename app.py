@@ -77,7 +77,13 @@ def gerar_pdf_elite(nome, conteudo, titulo, data_analise):
     pdf.set_text_color(40, 40, 40); pdf.set_font("Helvetica", "", 10)
     texto_limpo = sanitizar_texto_pdf(conteudo)
     pdf.multi_cell(0, 7, texto_limpo.encode('latin-1', 'replace').decode('latin-1'))
-    return bytes(pdf.output(dest='S'))
+    
+    # --- CORREÇÃO APLICADA AQUI ---
+    pdf_output = pdf.output(dest='S')
+    if isinstance(pdf_output, str):
+        return bytes(pdf_output, 'latin-1')
+    return bytes(pdf_output)
+    # ------------------------------
 
 # --- MOTOR DE IA ---
 def realizar_scan_phd(prompt_mestre, img_pil):
