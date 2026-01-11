@@ -158,47 +158,64 @@ with st.sidebar:
 # --- PROCESSAMENTO (RESTAURAÇÃO DOS PROMPTS PhD) ---
 if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
     if user_doc.get('avaliacoes_restantes', 0) > 0 or st.session_state.is_admin:
-        with st.status("🧬 PROCESSANDO PROTOCOLO TECHNOBOLT..."):
+        with st.status("🧬 EXECUTANDO PROTOCOLO TECHNOBOLT..."):
             img = ImageOps.exif_transpose(Image.open(up)).convert("RGB")
             img.thumbnail((600, 600)); imc = peso_at / ((altura/100)**2); gen = user_doc.get('genero', 'Masculino')
             
-            prompt_mestre = f"""VOCÊ É UM CONSELHO TÉCNICO DE ESPECIALISTAS DA TECHNOBOLT GYM.
-            ATLETA: {user_doc.get('nome')} | GÊNERO: {gen} | OBJETIVO: {obj} | IMC: {imc:.2f}.
-            RESTRIÇÕES: {r_a}, {r_m}, {r_f}.
+            # PROMPT: Foco absoluto na relação Imagem vs Objetivo vs Gênero
+            prompt_mestre = f"""VOCÊ É UM CONSELHO TÉCNICO DE ESPECIALISTAS DE ELITE.
+            INDIVIDUALIDADE BIOLÓGICA: ATLETA {user_doc.get('nome')} | GÊNERO {gen} | IMC {imc:.2f}.
+            META ESTRATÉGICA: {obj}.
+            RESTRIÇÕES CADASTRADAS: {r_a}, {r_m}, {r_f}.
 
             RESTRITO: NÃO INCLUA SAUDAÇÕES OU TÍTULOS DE SEÇÃO. RESPOSTA DIRETA, FORMAL E TÉCNICA.
-            EXPLIQUE TERMOS TÉCNICOS ENTRE PARÊNTESES DE FORMA INTUITIVA.
-            TODO O FOCO DEVE SER NAS NECESSIDADES ESTRUTURAIS IDENTIFICADAS NA IMAGEM.
+            TODO O LAUDO DEVE SER UMA RESPOSTA DIRETA ÀS EVIDÊNCIAS DA IMAGEM EM RELAÇÃO AO OBJETIVO {obj}.
 
             [AVALIACAO]
-            Aja como Especialista em Cineantropometria e Antropometria (ISAK 4). Analise a imagem para determinar somatotipo (classificação biotipológica), BF% (percentual de gordura ajustado para {gen}) e desvios cinemáticos (erros de padrão de movimento). FOCO: Assimetrias e correções necessárias para {obj}.
-            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações técnicas para homeostase (equilíbrio interno) e correção postural.
+            Aja como Especialista em Cineantropometria e Antropometria (ISAK 4). Sua prioridade é o diagnóstico visual: identifique na imagem o somatotipo, o percentual de gordura (BF%) e pontos críticos de atenção (assimetrias, fraqueza de volume ou desvios posturais). Relacione como estas características visuais facilitam ou dificultam a meta de {obj} para o gênero {gen}.
+            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações técnicas baseadas na sua análise visual.
 
             [NUTRICAO]
-            Aja como Especialista em Nutrogenômica (nutrição a nível gênico) e Nutrologia. Plano dietético extenso (2 alternativas por refeição). FOCO: Flexibilidade Metabólica (capacidade de queimar gordura ou carboidrato conforme demanda) para {obj} baseado no biotipo visual. Respeite: {r_a}.
-            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações técnicas para otimizar síntese proteica (construção de tecido) e metabolismo.
+            Aja como Especialista em Nutrogenômica e Nutrologia. O planejamento dietético (2 opções/ref) deve focar na Flexibilidade Metabólica necessária para transformar o corpo da imagem no objetivo de {obj}. Ajuste os macronutrientes conforme o perfil visual (ex: se houver acúmulo adiposo central, priorize gestão glicêmica). Respeite: {r_a}.
+            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações para otimizar o metabolismo celular.
 
             [SUPLEMENTACAO]
-            Aja como Especialista em Farmacologia Aplicada e Medicina Ortomolecular (equilíbrio químico celular). Indique 3-10 suplementos via Nexo Metabólico (conexão entre vias bioquímicas). Foco em ativação da via mTOR (via de sinalização de crescimento) e modulação do Cortisol matinal conforme gênero {gen}. Verifique: {r_m}.
-            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações técnicas sobre timing ergogênico (aumento de performance).
+            Aja como Especialista em Farmacologia e Medicina Ortomolecular. Prescreva 3-10 itens focado no Nexo Metabólico entre a condição física atual (imagem) e o objetivo {obj}. Considere a modulação hormonal e recuperação específica para o gênero {gen}. Verifique: {r_m}.
+            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações sobre timing ergogênico.
 
             [TREINO]
-            Aja como Especialista em Neuromecânica e Biomecânica de Alta Performance. O TREINO DEVE PRIORIZAR AS FALHAS ESTRUTURAIS IDENTIFICADAS NA FOTO. Corrija desequilíbrios e foque em {obj}. ENTREGUE UM CRONOGRAMA DE TREINO COMPLETO PARA OS 7 DIAS DA SEMANA (SEG A DOM).
-            Estrutura: Nome do Exercício | Séries | Reps | Justificativa Biomecânica. Explique Braço de Momento (alavanca de força) e Perfil de Resistência (torque muscular ao longo do movimento). Adapte para: {r_f}.
-            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações técnicas sobre cadência (velocidade de execução) e recrutamento motor.
+            Aja como Especialista em Neuromecânica e Biomecânica de Alta Performance. 
+            FOCO MANDATÓRIO: O TREINO DEVE SER A RESOLUÇÃO DOS PONTOS DE ATENÇÃO DA IMAGEM. Analise a foto e prescreva exercícios que corrijam falhas de simetria, volume ou postura para maximizar o {obj}.
+            
+            ENTREGUE UM CRONOGRAMA DE 7 DIAS (SEG A DOM).
+            Estrutura: DIA | NOME DO EXERCÍCIO | SÉRIES | REPS | JUSTIFICATIVA BIOMECÂNICA (Relacione com os pontos detectados na foto).
+            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações sobre cadência e recrutamento motor.
             """
             
             res, engine = realizar_scan_phd(prompt_mestre, img)
             if res:
                 def extrair(tag_inicio, tag_fim=None):
-                    padrao = f"\\{tag_inicio}\\s*(.*?)\\s*(?=\\{tag_fim}|$)" if tag_fim else f"\\{tag_inicio}\\s*(.*)"
+                    t_i = tag_inicio.replace('[', '\\[').replace(']', '\\]')
+                    if tag_fim:
+                        t_f = tag_fim.replace('[', '\\[').replace(']', '\\]')
+                        padrao = f"{t_i}\\s*(.*?)\\s*(?={t_f}|$)"
+                    else:
+                        padrao = f"{t_i}\\s*(.*)"
                     match = re.search(padrao, res, re.DOTALL | re.IGNORECASE)
                     return match.group(1).strip() if match else ""
                 
-                r1, r2, r3, r4 = extrair("[AVALIACAO]", "[NUTRICAO]"), extrair("[NUTRICAO]", "[SUPLEMENTACAO]"), extrair("[SUPLEMENTACAO]", "[TREINO]"), extrair("[TREINO]", None)
-                if not any([r1, r2, r3, r4]): r1 = res
+                r1 = extrair("[AVALIACAO]", "[NUTRICAO]")
+                r2 = extrair("[NUTRICAO]", "[SUPLEMENTACAO]")
+                r3 = extrair("[SUPLEMENTACAO]", "[TREINO]")
+                r4 = extrair("[TREINO]", None)
                 
-                nova = {"data": datetime.now().strftime("%d/%m/%Y %H:%M"), "peso_reg": peso_at, "r1": r1 or "...", "r2": r2 or "...", "r3": r3 or "...", "r4": r4 or "..."}
+                if not any([r1, r2, r3, r4]): r1 = res # Fallback total
+                
+                nova = {
+                    "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    "peso_reg": peso_at,
+                    "r1": r1 or "...", "r2": r2 or "...", "r3": r3 or "...", "r4": r4 or "..."
+                }
                 db.usuarios.update_one({"usuario": st.session_state.user_atual}, {"$push": {"historico_dossies": nova}, "$inc": {"avaliacoes_restantes": -1} if not st.session_state.is_admin else {"avaliacoes_restantes": 0}})
                 st.rerun()
 
