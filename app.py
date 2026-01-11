@@ -183,7 +183,7 @@ if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
             AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações técnicas sobre timing ergogênico (aumento de performance).
 
             [TREINO]
-            Aja como Especialista em Neuromecânica e Biomecânica de Alta Performance. O TREINO DEVE PRIORIZAR AS FALHAS ESTRUTURAIS IDENTIFICADAS NA FOTO. Corrija desequilíbrios e foque em {obj}.
+            Aja como Especialista em Neuromecânica e Biomecânica de Alta Performance. O TREINO DEVE PRIORIZAR AS FALHAS ESTRUTURAIS IDENTIFICADAS NA FOTO. Corrija desequilíbrios e foque em {obj}. ENTREGUE UM CRONOGRAMA DE TREINO COMPLETO PARA OS 7 DIAS DA SEMANA (SEG A DOM).
             Estrutura: Nome do Exercício | Séries | Reps | Justificativa Biomecânica. Explique Braço de Momento (alavanca de força) e Perfil de Resistência (torque muscular ao longo do movimento). Adapte para: {r_f}.
             AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações técnicas sobre cadência (velocidade de execução) e recrutamento motor.
             """
