@@ -21,12 +21,12 @@ def iniciar_conexao():
         password_raw = os.environ.get("MONGO_PASS", "tech@132")
         host = os.environ.get("MONGO_HOST", "cluster0.zbjsvk6.mongodb.net")
         password = urllib.parse.quote_plus(password_raw)
-        uri = "mongodb+srv://{}:{}@{}/?appName=Cluster0".format(user, password, host)
+        uri = f"mongodb+srv://{user}:{password}@{host}/?appName=Cluster0"
         client = MongoClient(uri, serverSelectionTimeoutMS=5000, tlsAllowInvalidCertificates=True)
         client.admin.command('ping')
         return client['technoboltgym']
     except Exception as e:
-        st.error("Erro de conexão com o Banco de Dados: {}".format(e))
+        st.error(f"Erro de conexão com o Banco de Dados: {e}")
         return None
 
 db = iniciar_conexao()
@@ -155,14 +155,13 @@ with st.sidebar:
     r_f = st.text_area("Restrições Físicas", "Nenhuma")
     up = st.file_uploader("📸 Scanner de Performance", type=['jpg', 'jpeg', 'png'])
 
-# --- PROCESSAMENTO (RESTAURAÇÃO DOS PROMPTS PhD) ---
+# --- PROCESSAMENTO ---
 if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
     if user_doc.get('avaliacoes_restantes', 0) > 0 or st.session_state.is_admin:
         with st.status("🧬 EXECUTANDO PROTOCOLO TECHNOBOLT..."):
             img = ImageOps.exif_transpose(Image.open(up)).convert("RGB")
             img.thumbnail((600, 600)); imc = peso_at / ((altura/100)**2); gen = user_doc.get('genero', 'Masculino')
             
-            # PROMPT: Foco absoluto na relação Imagem vs Objetivo vs Gênero
             prompt_mestre = f"""VOCÊ É UM CONSELHO TÉCNICO DE ESPECIALISTAS DE ELITE.
             INDIVIDUALIDADE BIOLÓGICA: ATLETA {user_doc.get('nome')} | GÊNERO {gen} | IMC {imc:.2f}.
             META ESTRATÉGICA: {obj}.
@@ -194,6 +193,7 @@ if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
             
             res, engine = realizar_scan_phd(prompt_mestre, img)
             if res:
+                # --- CORREÇÃO DA EXTRAÇÃO: ESCAPE DOS COLCHETES PARA REGEX ---
                 def extrair(tag_inicio, tag_fim=None):
                     t_i = tag_inicio.replace('[', '\\[').replace(']', '\\]')
                     if tag_fim:
@@ -209,7 +209,7 @@ if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
                 r3 = extrair("[SUPLEMENTACAO]", "[TREINO]")
                 r4 = extrair("[TREINO]", None)
                 
-                if not any([r1, r2, r3, r4]): r1 = res # Fallback total
+                if not any([r1, r2, r3, r4]): r1 = res # Fallback
                 
                 nova = {
                     "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
@@ -229,7 +229,6 @@ if user_doc and user_doc.get('historico_dossies'):
     
     for i, tab in enumerate(tabs[:4]):
         with tab:
-            # FIX: Processamento de quebra de linha seguro para compatibilidade
             raw_text = cs[i]
             formatted_html = raw_text.replace('\n', '<br>')
             st.markdown(f"<div class='result-card-unificado'>{formatted_html}</div>", unsafe_allow_html=True)
