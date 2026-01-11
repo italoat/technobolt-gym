@@ -101,7 +101,7 @@ def realizar_scan_phd(prompt_mestre, img_pil):
         except: continue
     return None, "OFFLINE"
 
-# --- ACESSO ---
+# --- LOGIN / CADASTRO ---
 if "logado" not in st.session_state: st.session_state.logado = False
 if not st.session_state.logado:
     t1, t2 = st.tabs(["🔐 Login", "📝 Cadastro"])
@@ -171,29 +171,29 @@ if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
             TODO O LAUDO DEVE SER UMA RESPOSTA DIRETA ÀS EVIDÊNCIAS DA IMAGEM EM RELAÇÃO AO OBJETIVO {obj}.
 
             [AVALIACAO]
-            Aja como Especialista em Cineantropometria e Antropometria (ISAK 4). Sua prioridade é o diagnóstico visual: identifique na imagem o somatotipo, o percentual de gordura (BF%) e pontos críticos de atenção (assimetrias, fraqueza de volume ou desvios posturais). Relacione como estas características visuais facilitam ou dificultam a meta de {obj} para o gênero {gen}.
+            Especialista em Cineantropometria e Antropometria (ISAK 4). Sua prioridade é o diagnóstico visual: identifique na imagem o somatotipo, o percentual de gordura (BF%) e pontos críticos de atenção (assimetrias, fraqueza de volume ou desvios posturais). Relacione como estas características visuais facilitam ou dificultam a meta de {obj} para o gênero {gen}.
             AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações técnicas baseadas na sua análise visual.
 
             [NUTRICAO]
-            Aja como Especialista em Nutrogenômica e Nutrologia. O planejamento dietético (2 opções/ref) deve focar na Flexibilidade Metabólica necessária para transformar o corpo da imagem no objetivo de {obj}. Ajuste os macronutrientes conforme o perfil visual (ex: se houver acúmulo adiposo central, priorize gestão glicêmica). Respeite: {r_a}.
+            Especialista em Nutrogenômica e Nutrologia. O planejamento dietético (2 opções/ref) deve focar na Flexibilidade Metabólica necessária para transformar o corpo da imagem no objetivo de {obj}. Ajuste os macronutrientes conforme o perfil visual (ex: se houver acúmulo adiposo central, priorize gestão glicêmica). Respeite: {r_a}.
             AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações para otimizar o metabolismo celular.
 
             [SUPLEMENTACAO]
-            Aja como Especialista em Farmacologia e Medicina Ortomolecular. Prescreva 3-10 itens focado no Nexo Metabólico entre a condição física atual (imagem) e o objetivo {obj}. Considere a modulação hormonal e recuperação específica para o gênero {gen}. Verifique: {r_m}.
+            Especialista em Farmacologia e Medicina Ortomolecular. Prescreva 3-10 itens focado no Nexo Metabólico entre a condição física atual (imagem) e o objetivo {obj}. Considere a modulação hormonal e recuperação específica para o gênero {gen}. Verifique: {r_m}.
             AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações sobre timing ergogênico.
 
             [TREINO]
-            Aja como Especialista em Neuromecânica e Biomecânica de Alta Performance. 
-            FOCO MANDATÓRIO: O TREINO DEVE SER A RESOLUÇÃO DOS PONTOS DE ATENÇÃO DA IMAGEM. Analise a foto e prescreva exercícios que corrijam falhas de simetria, volume ou postura para maximizar o {obj}.
+            Especialista em Neuromecânica e Biomecânica de Alta Performance. 
+            FOCO MANDATÓRIO: O TREINO DEVE SER A RESOLUÇÃO DOS PONTOS DE ATENÇÃO DA IMAGEM. Analise a foto e prescreva exercícios que corrijam falhas de simetria, volume ou postura observadas visualmente.
             
-            ENTREGUE UM CRONOGRAMA DE 7 DIAS (SEG A DOM).
-            Estrutura: DIA | NOME DO EXERCÍCIO | SÉRIES | REPS | JUSTIFICATIVA BIOMECÂNICA (Relacione com os pontos detectados na foto).
+            ENTREGUE UM CRONOGRAMA COMPLETO DE SEGUNDA A DOMINGO.
+            Para cada dia, especifique múltiplos exercícios.
+            Estrutura: DIA DA SEMANA | NOME DO EXERCÍCIO | SÉRIES | REPS | JUSTIFICATIVA BIOMECÂNICA (Relacione obrigatoriamente com os pontos detectados na foto).
             AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações sobre cadência e recrutamento motor.
             """
             
             res, engine = realizar_scan_phd(prompt_mestre, img)
             if res:
-                # --- CORREÇÃO DA EXTRAÇÃO: ESCAPE DOS COLCHETES PARA REGEX ---
                 def extrair(tag_inicio, tag_fim=None):
                     t_i = tag_inicio.replace('[', '\\[').replace(']', '\\]')
                     if tag_fim:
@@ -209,7 +209,7 @@ if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
                 r3 = extrair("[SUPLEMENTACAO]", "[TREINO]")
                 r4 = extrair("[TREINO]", None)
                 
-                if not any([r1, r2, r3, r4]): r1 = res # Fallback
+                if not any([r1, r2, r3, r4]): r1 = res
                 
                 nova = {
                     "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
