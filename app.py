@@ -13,7 +13,7 @@ from pymongo import MongoClient
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="TechnoBolt Gym Hub", layout="wide", page_icon="🏋️")
 
-# --- CONEXÃO MONGODB BLINDADA ---
+# --- CONEXÃO MONGODB ---
 @st.cache_resource
 def iniciar_conexao():
     try:
@@ -26,7 +26,7 @@ def iniciar_conexao():
         client.admin.command('ping')
         return client['technoboltgym']
     except Exception as e:
-        st.error("Erro de conexão com o Banco de Dados: {}".format(e))
+        st.error("Erro de conexão: {}".format(e))
         return None
 
 db = iniciar_conexao()
@@ -39,7 +39,7 @@ st.markdown("""
     .result-card-unificado { 
         background-color: #0d0d0d !important; border-left: 5px solid #3b82f6;
         border-radius: 12px; padding: 25px; margin-top: 15px; border: 1px solid #1a1a1a;
-        line-height: 1.7; color: #e0e0e0;
+        line-height: 1.7; color: #e0e0e0; font-family: 'Inter', sans-serif;
     }
     .result-card-unificado b, .result-card-unificado strong { color: #3b82f6; }
     .stButton>button { width: 100%; border-radius: 8px; font-weight: bold; background-color: #3b82f6 !important; color: white !important; }
@@ -163,7 +163,7 @@ with st.sidebar:
     r_a = st.text_area("Restrições Alimentares", "Nenhuma"); r_m = st.text_area("Medicamentos", "Nenhum"); r_f = st.text_area("Restrições Físicas", "Nenhuma")
     up = st.file_uploader("📸 Scanner de Performance", type=['jpg', 'jpeg', 'png'])
 
-# --- PROCESSAMENTO (REFORÇO TÉCNICO ALINHADO AO OBJETIVO) ---
+# --- PROCESSAMENTO (PRECISÃO VISUAL E BIOMECÂNICA) ---
 if up and st.button("🚀 INICIAR ANÁLISE CLÍNICA"):
     if (user_doc.get('avaliacoes_restantes', 0) > 0 or st.session_state.is_admin) and db is not None:
         with st.status("🧬 PROCESSANDO PROTOCOLO TECHNOBOLT..."):
@@ -173,24 +173,26 @@ if up and st.button("🚀 INICIAR ANÁLISE CLÍNICA"):
             prompt_mestre = f"""VOCÊ É UM CONSELHO TÉCNICO DE ELITE. ATLETA: {user_doc.get('nome')} | GÊNERO: {gen} | OBJETIVO: {obj} | IMC: {imc:.2f}
             RESTRIÇÕES: Alimentar: {r_a} | Médica: {r_m} | Física: {r_f}
 
-            RESTRITO: NÃO INCLUA SAUDAÇÕES OU TÍTULOS. USE LINGUAGEM FORMAL E TÉCNICA. EXPLIQUE TERMOS ENTRE PARÊNTESES.
-            TODO O DIAGNÓSTICO DEVE SER DIRECIONADO PARA MAXIMIZAR O OBJETIVO: {obj}.
+            RESTRITO: NÃO INCLUA SAUDAÇÕES OU TÍTULOS DE SEÇÃO NO RETORNO. 
+            LIGUAGEM FORMAL E TÉCNICA. EXPLIQUE TERMOS ENTRE PARÊNTESES.
 
             [AVALIACAO]
-            Especialista em Antropometria (ISAK 4), Cineantropometria e Ultrassonografia para Composição Corporal. Analise somatotipo (classificação biotipológica), BF% (percentual de gordura) e desvios cinemáticos (erros de padrão de movimento). Foco em assimetrias miofasciais e alinhamento acromial/pélvico para favorecer o objetivo {obj}. Considere: {r_f}. 
-            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações técnicas para homeostase e correção postural focada em {obj}.
+            Especialista em Antropometria (ISAK 4) e Cineantropometria. Analise minuciosamente a foto para identificar o somatotipo predominante, assimetrias musculares visíveis e desequilíbrios posturais (ex: ombros protusos, inclinação pélvica). Determine como essas características visuais afetam o objetivo {obj}. Considere: {r_f}.
+            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações técnicas para homeostase e correção postural imediata com base na foto.
 
             [NUTRICAO]
-            Especialista em Nutrologia, Nutrogenômica (nutrientes e expressão gênica) e Bioquímica do Metabolismo. Planejamento dietético extenso (2 alternativas por refeição). Foco em Flexibilidade Metabólica (queima eficiente de substratos) e gestão da carga glicêmica especificamente para atingir {obj}. Respeite: {r_a}. Explique Termogênese Induzida (energia para digestão).
-            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações para otimizar síntese proteica (construção de tecido) e metabolismo para {obj}.
+            Especialista em Nutrologia e Nutrogenômica. Plano dietético extenso (2 opções/ref). Foco em Flexibilidade Metabólica e gestão glicêmica para atingir {obj} com base no biotipo identificado na imagem. Respeite: {r_a}.
+            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações para otimizar síntese proteica e aporte energético celular.
 
             [SUPLEMENTACAO]
-            Especialista em Farmacologia Esportiva, Medicina Ortomolecular (equilíbrio químico celular) e Fitoterapia. Indique 3-10 itens via Nexo Metabólico (vias bioquímicas interligadas). Foco em ativação da via mTOR (crescimento muscular) ou Lipólise (queima de gordura) conforme o objetivo {obj}. Verifique: {r_m}. Explique Biodisponibilidade (taxa de absorção).
-            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações sobre timing ergogênico (aumento de performance) focado em {obj}.
+            Especialista em Farmacodinâmica e Medicina Ortomolecular. Indique 3-10 itens via Nexo Metabólico. Ativação da via mTOR ou Lipólise focada no objetivo {obj} e no perfil hormonal do gênero {gen}. Verifique: {r_m}.
+            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações sobre timing ergogênico (aumento de performance).
 
             [TREINO]
-            Especialista em Biomecânica de Alta Performance, Neuromecânica e Cinesiologia Clínica. Protocolo de 7 dias (8-10 exercícios). Foco em Perfis de Resistência (torque muscular) e relação Comprimento-Tensão ajustados para a mecânica de {obj}. Adapte para: {r_f}. Nome | Séries | Reps | Justificativa técnica. Explique Braço de Momento (alavanca de força).
-            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações sobre cadência (velocidade) e recrutamento motor específicos para maximizar {obj}.
+            Especialista em Biomecânica de Alta Performance, Neuromecânica e Cinesiologia Clínica. 
+            FOCO ABSOLUTO: O treino deve ser prescrito com base nas necessidades estruturais identificadas NA FOTO. Se a foto mostrar fraqueza em membros inferiores ou assimetria de dorsais, o treino deve priorizar a correção dessas áreas para atingir {obj}.
+            Estrutura: Nome do Exercício | Séries | Reps | Justificativa Biomecânica baseada na imagem. Explique Braço de Momento (alavanca de força) e Perfil de Resistência (torque muscular). Adapte para: {r_f}.
+            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações sobre cadência e recrutamento motor específicos para as falhas mecânicas observadas na foto.
             """
             
             res, engine_info = realizar_scan_phd(prompt_mestre, img)
