@@ -47,7 +47,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- UTILITÁRIOS E PDF (VISUAL PROFISSIONAL + FIX UNICODE) ---
+# --- UTILITÁRIOS E PDF ---
 def sanitizar_texto_pdf(texto):
     texto = texto.replace('**', '').replace('###', '').replace('##', '').replace('#', '')
     texto = texto.replace('•', '-').replace('✅', '[OK]').replace('📊', '').replace('🥗', '').replace('💊', '').replace('🏋️', '')
@@ -82,19 +82,13 @@ def gerar_pdf_elite(nome, conteudo, titulo, data_analise):
     pdf_out = pdf.output(dest='S')
     return bytes(pdf_out, 'latin-1') if isinstance(pdf_out, str) else bytes(pdf_out)
 
-# --- RESTAURAÇÃO: MOTOR DE IA (PENTACAMADA COMPLETA 2026) ---
+# --- MOTOR DE IA (PENTACAMADA) ---
 def realizar_scan_phd(prompt_mestre, img_pil):
     img_byte_arr = io.BytesIO(); img_pil.save(img_byte_arr, format='JPEG')
     img_blob = {"mime_type": "image/jpeg", "data": img_byte_arr.getvalue()}
     chaves = [os.environ.get("GEMINI_CHAVE_{}".format(i)) for i in range(1, 8)]
     chaves = [k for k in chaves if k]
-    motores = [
-        "models/gemini-3-flash-preview", 
-        "models/gemini-2.5-flash", 
-        "models/gemini-2.0-flash", 
-        "models/gemini-2.0-flash-lite", 
-        "models/gemini-flash-latest"
-    ]
+    motores = ["models/gemini-3-flash-preview", "models/gemini-2.5-flash", "models/gemini-2.0-flash", "models/gemini-2.0-flash-lite", "models/gemini-flash-latest"]
     for idx, key in enumerate(chaves):
         try:
             genai.configure(api_key=key)
@@ -107,7 +101,7 @@ def realizar_scan_phd(prompt_mestre, img_pil):
         except: continue
     return None, "OFFLINE"
 
-# --- LOGIN E CADASTRO ---
+# --- ACESSO ---
 if "logado" not in st.session_state: st.session_state.logado = False
 if not st.session_state.logado:
     t1, t2 = st.tabs(["🔐 Login Atleta", "📝 Solicitar Cadastro"])
@@ -128,11 +122,7 @@ if not st.session_state.logado:
             if n_reg and u_reg and p_reg and db is not None:
                 if db.usuarios.find_one({"usuario": u_reg}): st.error("Login já existe.")
                 else:
-                    db.usuarios.insert_one({
-                        "usuario": u_reg, "senha": p_reg, "nome": n_n, "genero": g_reg,
-                        "status": "pendente", "avaliacoes_restantes": 0, "historico_dossies": [],
-                        "data_renovacao": datetime.now().strftime("%d/%m/%Y")
-                    })
+                    db.usuarios.insert_one({"usuario": u_reg, "senha": p_reg, "nome": n_reg, "genero": g_reg, "status": "pendente", "avaliacoes_restantes": 0, "historico_dossies": [], "data_renovacao": datetime.now().strftime("%d/%m/%Y")})
                     st.success("Cadastro solicitado!")
     st.stop()
 
@@ -171,53 +161,39 @@ with st.sidebar:
     peso_at = st.number_input("Peso (kg)", 30.0, 250.0, 80.0); altura = st.number_input("Altura (cm)", 100, 250, 175)
     obj = st.selectbox("Objetivo", ["Hipertrofia", "Lipólise", "Performance", "Postural"])
     r_a = st.text_area("Restrições Alimentares", "Nenhuma"); r_m = st.text_area("Medicamentos", "Nenhum"); r_f = st.text_area("Restrições Físicas", "Nenhuma")
-    up = st.file_uploader("📸 Scanner", type=['jpg', 'jpeg', 'png'])
+    up = st.file_uploader("📸 Scanner de Performance", type=['jpg', 'jpeg', 'png'])
 
-# --- PROCESSAMENTO (REFORÇO DE ESPECIALIDADES E FORMAÇÕES) ---
-
-if up and st.button("🚀 INICIAR ANALISE CLINICA"):
+# --- PROCESSAMENTO (REFORÇO TÉCNICO ALINHADO AO OBJETIVO) ---
+if up and st.button("🚀 INICIAR ANÁLISE CLÍNICA"):
     if (user_doc.get('avaliacoes_restantes', 0) > 0 or st.session_state.is_admin) and db is not None:
-        with st.status("🧬 EXECUTANDO PROTOCOLO TECHNOBOLT V19..."):
+        with st.status("🧬 PROCESSANDO PROTOCOLO TECHNOBOLT..."):
             img = ImageOps.exif_transpose(Image.open(up)).convert("RGB")
-            img.thumbnail((600, 600)); imc = peso_at / ((altura/100)**2)
-            gen = user_doc.get('genero', 'Masculino')
+            img.thumbnail((600, 600)); imc = peso_at / ((altura/100)**2); gen = user_doc.get('genero', 'Masculino')
             
-            prompt_mestre = f"""VOCÊ É UM CONSELHO TÉCNICO DE ELITE DA TECHNOBOLT GYM. 
-            ATLETA: {user_doc.get('nome')} | GÊNERO: {gen} | OBJETIVO: {obj} | IMC: {imc:.2f}
+            prompt_mestre = f"""VOCÊ É UM CONSELHO TÉCNICO DE ELITE. ATLETA: {user_doc.get('nome')} | GÊNERO: {gen} | OBJETIVO: {obj} | IMC: {imc:.2f}
             RESTRIÇÕES: Alimentar: {r_a} | Médica: {r_m} | Física: {r_f}
 
-            ESCREVA 4 RELATÓRIOS TÉCNICOS. REMOVA TÍTULOS ACADÊMICOS. USE LINGUAGEM TÉCNICA COM EXPLICAÇÕES INTUITIVAS.
-            CONSIDERE A FISIOLOGIA ESPECÍFICA DO GÊNERO {gen}.
+            RESTRITO: NÃO INCLUA SAUDAÇÕES OU TÍTULOS. USE LINGUAGEM FORMAL E TÉCNICA. EXPLIQUE TERMOS ENTRE PARÊNTESES.
+            TODO O DIAGNÓSTICO DEVE SER DIRECIONADO PARA MAXIMIZAR O OBJETIVO: {obj}.
 
             [AVALIACAO]
-            Aja como Especialista com formações em Antropometria (ISAK 4), Cineantropometria e Ultrassonografia para Composição Corporal. 
-            Analise somatotipo, BF% (ajustado para {gen}) e desvios cinemáticos. FOCO: Assimetrias miofasciais e alinhamento acromial/pélvico. 
-            Considere restrição física: {r_f}. 
-            
-            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações técnicas para homeostase e correção postural imediata.
+            Especialista em Antropometria (ISAK 4), Cineantropometria e Ultrassonografia para Composição Corporal. Analise somatotipo (classificação biotipológica), BF% (percentual de gordura) e desvios cinemáticos (erros de padrão de movimento). Foco em assimetrias miofasciais e alinhamento acromial/pélvico para favorecer o objetivo {obj}. Considere: {r_f}. 
+            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações técnicas para homeostase e correção postural focada em {obj}.
 
             [NUTRICAO]
-            Aja como Especialista com formações em Nutrologia, Nutrogenômica e Bioquímica do Metabolismo. 
-            Planejamento dietético extenso (2 opções/ref). FOCO: Flexibilidade Metabólica e Modulação da Insulina. 
-            Respeite rigorosamente: {r_a}. Explique Termogênese Induzida e Densidade Nutricional.
-            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações para otimizar a síntese proteica e aporte energético celular.
+            Especialista em Nutrologia, Nutrogenômica (nutrientes e expressão gênica) e Bioquímica do Metabolismo. Planejamento dietético extenso (2 alternativas por refeição). Foco em Flexibilidade Metabólica (queima eficiente de substratos) e gestão da carga glicêmica especificamente para atingir {obj}. Respeite: {r_a}. Explique Termogênese Induzida (energia para digestão).
+            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações para otimizar síntese proteica (construção de tecido) e metabolismo para {obj}.
 
             [SUPLEMENTACAO]
-            Aja como Especialista com formações em Farmacologia Esportiva, Medicina Ortomolecular e Fitoterapia. 
-            Indique 3-10 itens via Nexo Metabólico. FOCO: Ativação da via mTOR e modulação do Cortisol matinal conforme fisiologia de {gen}. 
-            Verifique: {r_m}. Explique Biodisponibilidade e Sinergismo Nutricional.
-            
-            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações sobre janelas de absorção e empilhamento ergogênico.
+            Especialista em Farmacologia Esportiva, Medicina Ortomolecular (equilíbrio químico celular) e Fitoterapia. Indique 3-10 itens via Nexo Metabólico (vias bioquímicas interligadas). Foco em ativação da via mTOR (crescimento muscular) ou Lipólise (queima de gordura) conforme o objetivo {obj}. Verifique: {r_m}. Explique Biodisponibilidade (taxa de absorção).
+            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações sobre timing ergogênico (aumento de performance) focado em {obj}.
 
             [TREINO]
-            Aja como Especialista com formações em Biomecânica de Alta Performance, Neuromecânica e Cinesiologia Clínica. 
-            Protocolo de 7 dias (8-10 exerc/dia). FOCO: Perfis de Resistência e Relação Comprimento-Tensão. 
-            Adapte para: {r_f}. Estrutura: NOME | SÉRIES | REPS | JUSTIFICATIVA TÉCNICA.
-            
-            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações sobre cadência, controle tônico e recrutamento motor para {obj}.
+            Especialista em Biomecânica de Alta Performance, Neuromecânica e Cinesiologia Clínica. Protocolo de 7 dias (8-10 exercícios). Foco em Perfis de Resistência (torque muscular) e relação Comprimento-Tensão ajustados para a mecânica de {obj}. Adapte para: {r_f}. Nome | Séries | Reps | Justificativa técnica. Explique Braço de Momento (alavanca de força).
+            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações sobre cadência (velocidade) e recrutamento motor específicos para maximizar {obj}.
             """
             
-            res, eng = realizar_scan_phd(prompt_mestre, img)
+            res, engine_info = realizar_scan_phd(prompt_mestre, img)
             if res:
                 def ext(ti, tp=None):
                     p = f"\\{ti}\\s*(.*?)\\s*(?=\\{ti}|$)" if tp is None else f"\\{ti}\\s*(.*?)\\s*(?=\\{tp}|$)"
@@ -229,11 +205,15 @@ if up and st.button("🚀 INICIAR ANALISE CLINICA"):
 # --- EXIBIÇÃO ---
 if user_doc and user_doc.get('historico_dossies'):
     hist = user_doc['historico_dossies']
-    sel = st.selectbox("📅 Laudos Anteriores", [a['data'] for a in reversed(hist)])
+    sel = st.selectbox("📅 Consultar Dossiês Históricos", [a['data'] for a in reversed(hist)])
     d = next(a for a in hist if a['data'] == sel)
     tabs = st.tabs(["📊 Antropometria", "🥗 Nutrologia", "💊 Suplementação", "🏋️ Biomecânica", "📜 Laudo Completo"])
     cs = [d['r1'], d['r2'], d['r3'], d['r4']]; ts = ["Antropometria", "Nutrologia", "Suplementacao", "Biomecanica"]
     for i, tab in enumerate(tabs[:4]):
         with tab:
             st.markdown("<div class='result-card-unificado'>{}</div>".format(cs[i].replace('\n', '<br>')), unsafe_allow_html=True)
-            st.download_button("📥 PDF {}".format(ts[i]), data=gerar_pdf_elite(user_doc.get('nome'), cs[i], ts[i], d['data']), file_name="{}.pdf".format(ts[i]), key="{}_{}".format(ts[i], sel))
+            st.download_button("📥 Baixar PDF {}".format(ts[i]), data=gerar_pdf_elite(user_doc.get('nome'), cs[i], ts[i], d['data']), file_name="{}.pdf".format(ts[i]), key="{}_{}".format(ts[i], sel))
+    with tabs[4]:
+        f_t = "LAUDO ANTROPOMÉTRICO:\n{}\n\nLAUDO NUTROLÓGICO:\n{}\n\nLAUDO DE SUPLEMENTAÇÃO:\n{}\n\nLAUDO BIOMECÂNICO:\n{}".format(d['r1'], d['r2'], d['r3'], d['r4'])
+        st.markdown("<div class='result-card-unificado'>{}</div>".format(f_t.replace('\n', '<br>')), unsafe_allow_html=True)
+        st.download_button("📥 BAIXAR LAUDO COMPLETO", data=gerar_pdf_elite(user_doc.get('nome'), f_t, "Laudo Completo", d['data']), file_name="Laudo_Completo.pdf", key="f_{}".format(sel))
