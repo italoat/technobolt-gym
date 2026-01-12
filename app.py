@@ -85,7 +85,7 @@ def gerar_pdf_elite(nome, conteudo, titulo, data_analise):
 def realizar_scan_phd(prompt_mestre, img_pil):
     img_byte_arr = io.BytesIO(); img_pil.save(img_byte_arr, format='JPEG')
     img_blob = {"mime_type": "image/jpeg", "data": img_byte_arr.getvalue()}
-    chaves = [os.environ.get("GEMINI_CHAVE_{}".format(i)) for i in range(1, 8)]
+    chaves = [os.environ.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8)]
     chaves = [k for k in chaves if k]
     motores = ["models/gemini-3-flash-preview", "models/gemini-2.5-flash", "models/gemini-2.0-flash", "models/gemini-flash-latest"]
     for idx, key in enumerate(chaves):
@@ -96,7 +96,7 @@ def realizar_scan_phd(prompt_mestre, img_pil):
                     model = genai.GenerativeModel(m)
                     response = model.generate_content([prompt_mestre, img_blob])
                     if response and response.text:
-                        return response.text, "CONTA {} - {}".format(idx+1, m.upper())
+                        return response.text, f"CONTA {idx+1} - {m.upper()}"
                 except: continue
         except: continue
     return None, "OFFLINE"
@@ -132,22 +132,22 @@ if st.session_state.is_admin and db is not None:
         usuarios_lista = list(db.usuarios.find({"usuario": {"$ne": "admin"}}))
         for usr in usuarios_lista:
             c1, c2, c3, c4, c5 = st.columns([2, 2, 1, 1, 2])
-            c1.write("Atleta: {}".format(usr.get('usuario')))
+            c1.write(f"Atleta: {usr.get('usuario')}")
             op_st = ["pendente", "ativo", "inativo"]
-            nst = c2.selectbox("Status_{}".format(usr['usuario']), op_st, index=op_st.index(usr.get('status', 'pendente')))
+            nst = c2.selectbox(f"Status_{usr['usuario']}", op_st, index=op_st.index(usr.get('status', 'pendente')))
             if nst != usr.get('status'):
                 db.usuarios.update_one({"usuario": usr['usuario']}, {"$set": {"status": nst}}); st.rerun()
-            if c5.button("Renovar 4", key="ren_{}".format(usr['usuario'])):
+            if c5.button(f"Renovar 4", key=f"ren_{usr['usuario']}"):
                 db.usuarios.update_one({"usuario": usr['usuario']}, {"$set": {"avaliacoes_restantes": 4, "status": "ativo", "data_renovacao": datetime.now().strftime("%d/%m/%Y")}})
                 st.rerun()
 
 # --- SIDEBAR ---
 with st.sidebar:
-    st.header("Atleta: {}".format(user_doc.get('nome', 'N/A').split()[0]))
+    st.header(f"Atleta: {user_doc.get('nome', 'N/A').split()[0]}")
     lista_g = ["Masculino", "Feminino"]
     gen_db = user_doc.get('genero', 'Masculino')
     genero_selecionado = st.selectbox("Gênero Biológico", lista_g, index=lista_g.index(gen_db) if gen_db in lista_g else 0)
-    st.write("Créditos: **{}**".format(user_doc.get('avaliacoes_restantes', 0)))
+    st.write(f"Créditos: **{user_doc.get('avaliacoes_restantes', 0)}**")
     if st.button("LOGOUT"): st.session_state.logado = False; st.rerun()
     peso_at = st.number_input("Peso (kg)", 30.0, 250.0, 80.0)
     altura = st.number_input("Altura (cm)", 100, 250, 175)
@@ -157,7 +157,7 @@ with st.sidebar:
     r_f = st.text_area("Restrições Físicas", "Nenhuma")
     up = st.file_uploader("📸 Scanner de Performance", type=['jpg', 'jpeg', 'png'])
 
-# --- PROCESSAMENTO (PROMPT MAXIMIZADO) ---
+# --- PROCESSAMENTO (PROTOCOLOS CLÍNICOS AVANÇADOS) ---
 if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
     if user_doc.get('avaliacoes_restantes', 0) > 0 or st.session_state.is_admin:
         with st.status("🧬 EXECUTANDO PROTOCOLO TECHNOBOLT..."):
@@ -170,25 +170,34 @@ if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
             META: {obj}. RESTRIÇÕES: {r_a}, {r_m}, {r_f}.
 
             RESTRITO: SEM SAUDAÇÕES OU TÍTULOS. RESPOSTA DIRETA, FORMAL E TÉCNICA.
-            EXPLIQUE TERMOS TÉCNICOS ENTRE PARÊNTESES (EX: CINESIOLOGIA).
+            TODO O LAUDO DEVE SER UMA RESPOSTA DIRETA ÀS EVIDÊNCIAS DA IMAGEM EM RELAÇÃO AO OBJETIVO {obj}.
 
             [AVALIACAO]
-            Especialista em Cineantropometria e Antropometria (ISAK 4). Diagnóstico visual: somatotipo, BF% e pontos de atenção (assimetrias, fraquezas aparentes). Relacione a foto com a meta {obj}.
-            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações.
+            Aja como Especialista em Cineantropometria e Antropometria (ISAK 4). Sua prioridade é o diagnóstico visual exaustivo dos seguintes marcos anatômicos (entregue em tabelas):
+
+            1. SEGMENTAÇÃO CORPORAL (PONTOS DE ATENÇÃO):
+            - Tronco e Cabeça: Pescoço, tórax (mesoesternal), cintura (ponto mais estreito), abdômen (umbilical), quadril (maior protuberância glútea).
+            - Membros Superiores: Braço relaxado, braço contraído (tensão máxima), antebraço, punho.
+            - Membros Inferiores: Coxa proximal (abaixo do glúteo), coxa medial (meio do fêmur), coxa distal (acima do joelho), panturrilha máxima, tornozelo.
+
+            2. ESTIMATIVA DE DOBRAS CUTÂNEAS (DISTRIBUIÇÃO ADIPOSA):
+            - Tronco: Peitoral/Torácica, axilar média, suprailíaca, supraespinal, abdominal, subescapular, lombar.
+            - Membros: Tricepital, bicepital, coxa medial, panturrilha medial.
+
+            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações técnicas baseadas na análise visual desses perímetros e dobras.
 
             [NUTRICAO]
-            Especialista em Nutrogenômica e Nutrologia. Dieta extensa (2 opções/ref). Foco em Flexibilidade Metabólica baseado no perfil visual para {obj}. Respeite: {r_a}.
+            Especialista em Nutrogenômica e Nutrologia. Plano dietético extenso (2 opções/ref). Foco em Flexibilidade Metabólica para {obj}. Respeite: {r_a}.
             AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações.
 
             [SUPLEMENTACAO]
-            Especialista em Farmacologia e Medicina Ortomolecular. 3-10 itens via Nexo Metabólico. Foco em mTOR e modulação hormonal para {genero_selecionado}. Verifique: {r_m}.
+            Especialista em Farmacologia e Medicina Ortomolecular. 3-10 itens via Nexo Metabólico. Foco em mTOR e modulação hormonal. Verifique: {r_m}.
             AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações.
 
             [TREINO]
-            Especialista em Biomecânica e Neuromecânica. O TREINO DEVE RESOLVER OS PONTOS DE ATENÇÃO DA FOTO.
+            Especialista em Neuromecânica e Biomecânica de Alta Performance. O TREINO DEVE RESOLVER AS FALHAS DETECTADAS NA FOTO (tronco, membros e assimetrias).
             ENTREGUE UM CRONOGRAMA EXAUSTIVO DE SEGUNDA A DOMINGO (7 DIAS).
-            PARA CADA DIA, PRESCREVA MÚLTIPLOS EXERCÍCIOS E FORNEÇA UMA ALTERNATIVA TÉCNICA PARA CADA UM.
-            USE O FORMATO DE TABELA MARKDOWN: | Dia | Exercício | Alternativa | Séries/Reps | Justificativa Biomecânica |
+            USE TABELA MARKDOWN: | Dia | Exercício | Alternativa | Séries/Reps | Justificativa Biomecânica |
             AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações sobre cadência e recrutamento motor.
             """
             
@@ -221,15 +230,14 @@ if user_doc and user_doc.get('historico_dossies'):
     
     for i, tab in enumerate(tabs[:4]):
         with tab:
-            # Renderização direta em Markdown para suportar tabelas visualmente
             st.markdown(f"<div class='result-card-unificado'>", unsafe_allow_html=True)
             st.markdown(cs[i])
             st.markdown(f"</div>", unsafe_allow_html=True)
             st.download_button(f"📥 PDF {ts[i]}", data=gerar_pdf_elite(user_doc['nome'], cs[i], ts[i], d['data']), file_name=f"{ts[i]}.pdf", key=f"{ts[i]}_{sel}")
     
     with tabs[4]:
-        f_t = "LAUDO ANTROPOMÉTRICO:\n{}\n\nLAUDO NUTROLÓGICO:\n{}\n\nLAUDO DE SUPLEMENTAÇÃO:\n{}\n\nLAUDO BIOMECÂNICO:\n{}".format(d['r1'], d['r2'], d['r3'], d['r4'])
+        f_t = f"LAUDO ANTROPOMÉTRICO:\n{d['r1']}\n\nLAUDO NUTROLÓGICO:\n{d['r2']}\n\nLAUDO DE SUPLEMENTAÇÃO:\n{d['r3']}\n\nLAUDO BIOMECÂNICO:\n{d['r4']}"
         st.markdown(f"<div class='result-card-unificado'>", unsafe_allow_html=True)
         st.markdown(f_t)
         st.markdown(f"</div>", unsafe_allow_html=True)
-        st.download_button("📥 BAIXAR COMPLETO", data=gerar_pdf_elite(user_doc['nome'], f_t, "Laudo Completo", d['data']), file_name="Laudo_Completo.pdf", key="full_{}".format(sel))
+        st.download_button("📥 BAIXAR COMPLETO", data=gerar_pdf_elite(user_doc['nome'], f_t, "Laudo Completo", d['data']), file_name="Laudo_Completo.pdf", key=f"full_{sel}")
