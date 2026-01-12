@@ -157,7 +157,7 @@ with st.sidebar:
     r_f = st.text_area("Restrições Físicas", "Nenhuma")
     up = st.file_uploader("📸 Scanner de Performance", type=['jpg', 'jpeg', 'png'])
 
-# --- PROCESSAMENTO ---
+# --- PROCESSAMENTO (PROTOCOLOS CLÍNICOS INTUITIVOS) ---
 if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
     if user_doc.get('avaliacoes_restantes', 0) > 0 or st.session_state.is_admin:
         with st.status("🧬 EXECUTANDO PROTOCOLO TECHNOBOLT..."):
@@ -170,18 +170,19 @@ if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
             META: {obj}. RESTRIÇÕES: {r_a}, {r_m}, {r_f}.
 
             RESTRITO: SEM SAUDAÇÕES OU TÍTULOS. RESPOSTA DIRETA, FORMAL E TÉCNICA.
-            EXPLIQUE TERMOS TÉCNICOS ENTRE PARÊNTESES.
+            EXPLIQUE TODOS OS TERMOS TÉCNICOS ENTRE PARÊNTESES DE FORMA INTUITIVA.
 
             [AVALIACAO]
             Aja como Especialista em Cineantropometria e Antropometria Avançada (ISAK 4). Sua prioridade é o diagnóstico visual exaustivo dos seguintes marcos anatômicos (entregue em tabelas):
+
             1. SEGMENTAÇÃO CORPORAL (PONTOS DE ATENÇÃO):
-            - Tronco e Cabeça: Pescoço, tórax (mesoesternal), cintura (ponto mais estreito), abdômen (umbilical), quadril (maior protuberância glútea).
+            - Tronco e Cabeça: Pescoço, tórax (mesoesternal - ponto médio do peito), cintura (ponto mais estreito), abdômen (umbilical - altura do umbigo), quadril (maior protuberância glútea - parte mais alta do bumbum).
             - Membros Superiores: Braço relaxado, braço contraído (tensão máxima), antebraço, punho.
-            - Membros Inferiores: Coxa proximal (abaixo do glúteo), coxa medial (meio do fêmur), coxa distal (acima do joelho), panturrilha máxima, tornozelo.
+            - Membros Inferiores: Coxa proximal (logo abaixo do glúteo - parte superior), coxa medial (meio do fêmur - meio da coxa), coxa distal (acima do joelho - parte inferior), panturrilha máxima, tornozelo.
 
             2. ESTIMATIVA DE DOBRAS CUTÂNEAS (DISTRIBUIÇÃO ADIPOSA):
-            - Tronco: Peitoral/Torácica, axilar média, suprailíaca, supraespinal, abdominal, subescapular, lombar.
-            - Membros: Tricepital, bicepital, coxa medial, panturrilha medial.
+            - Tronco: Peitoral/Torácica (região do peito), axilar média (lateral do tronco), suprailíaca (acima do osso do quadril), supraespinal (diagonal acima do quadril), abdominal (lateral do umbigo), subescapular (abaixo da "asa" das costas), lombar (parte inferior das costas).
+            - Membros: Tricepital (atrás do braço), bicepital (frente do braço), coxa medial (meio da coxa), panturrilha medial (parte interna da panturrilha).
 
             AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações técnicas baseadas na análise visual desses perímetros e dobras.
 
@@ -194,7 +195,7 @@ if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
             AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações.
 
             [TREINO]
-            Especialista em Neuromecânica e Biomecânica de Alta Performance. O TREINO DEVE RESOLVER AS FALHAS DETECTADAS NA FOTO (tronco, membros e assimetrias).
+            Especialista em Neuromecânica e Biomecânica de Alta Performance. O TREINO DEVE RESOLVER AS FALHAS DETECTADAS NA FOTO.
             ENTREGUE UM CRONOGRAMA EXAUSTIVO DE SEGUNDA A DOMINGO (7 DIAS).
             PARA CADA DIA, PRESCREVA UMA LISTA EXTENSA DE EXERCÍCIOS PARA MAXIMIZAR OS RESULTADOS DE {obj} (ALTO VOLUME).
             FORNEÇA OBRIGATORIAMENTE UMA ALTERNATIVA TÉCNICA (EXERCÍCIO OPCIONAL/SUBSTITUTO) PARA CADA MOVIMENTO PRESCRITO.
