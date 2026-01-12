@@ -81,13 +81,13 @@ def gerar_pdf_elite(nome, conteudo, titulo, data_analise):
     pdf_out = pdf.output(dest='S')
     return bytes(pdf_out, 'latin-1') if isinstance(pdf_out, str) else bytes(pdf_out)
 
-# --- MOTOR DE IA (PENTACAMADA RESTAURADA) ---
+# --- MOTOR DE IA ---
 def realizar_scan_phd(prompt_mestre, img_pil):
     img_byte_arr = io.BytesIO(); img_pil.save(img_byte_arr, format='JPEG')
     img_blob = {"mime_type": "image/jpeg", "data": img_byte_arr.getvalue()}
     chaves = [os.environ.get("GEMINI_CHAVE_{}".format(i)) for i in range(1, 8)]
     chaves = [k for k in chaves if k]
-    motores = ["models/gemini-3-flash-preview", "models/gemini-2.5-flash", "models/gemini-2.0-flash", "models/gemini-2.0-flash-lite", "models/gemini-flash-latest"]
+    motores = ["models/gemini-3-flash-preview", "models/gemini-2.5-flash", "models/gemini-2.0-flash", "models/gemini-flash-latest"]
     for idx, key in enumerate(chaves):
         try:
             genai.configure(api_key=key)
@@ -144,12 +144,9 @@ if st.session_state.is_admin and db is not None:
 # --- SIDEBAR ---
 with st.sidebar:
     st.header("Atleta: {}".format(user_doc.get('nome', 'N/A').split()[0]))
-    
-    # Gênero Editável e Sincronizado
     lista_g = ["Masculino", "Feminino"]
     gen_db = user_doc.get('genero', 'Masculino')
     genero_selecionado = st.selectbox("Gênero Biológico", lista_g, index=lista_g.index(gen_db) if gen_db in lista_g else 0)
-    
     st.write("Créditos: **{}**".format(user_doc.get('avaliacoes_restantes', 0)))
     if st.button("LOGOUT"): st.session_state.logado = False; st.rerun()
     peso_at = st.number_input("Peso (kg)", 30.0, 250.0, 80.0)
@@ -160,43 +157,38 @@ with st.sidebar:
     r_f = st.text_area("Restrições Físicas", "Nenhuma")
     up = st.file_uploader("📸 Scanner de Performance", type=['jpg', 'jpeg', 'png'])
 
-# --- PROCESSAMENTO ---
+# --- PROCESSAMENTO (PROMPT MAXIMIZADO) ---
 if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
     if user_doc.get('avaliacoes_restantes', 0) > 0 or st.session_state.is_admin:
         with st.status("🧬 EXECUTANDO PROTOCOLO TECHNOBOLT..."):
             img = ImageOps.exif_transpose(Image.open(up)).convert("RGB")
             img.thumbnail((600, 600)); imc = peso_at / ((altura/100)**2)
-            
-            # Atualiza o Gênero no Banco de Dados antes da análise
             db.usuarios.update_one({"usuario": st.session_state.user_atual}, {"$set": {"genero": genero_selecionado}})
             
-            prompt_mestre = f"""VOCÊ É UM CONSELHO TÉCNICO DE ESPECIALISTAS DE ELITE.
-            INDIVIDUALIDADE BIOLÓGICA: ATLETA {user_doc.get('nome')} | GÊNERO {genero_selecionado} | IMC {imc:.2f}.
-            META ESTRATÉGICA: {obj}.
-            RESTRIÇÕES CADASTRADAS: {r_a}, {r_m}, {r_f}.
+            prompt_mestre = f"""VOCÊ É UM CONSELHO TÉCNICO DE ESPECIALISTAS DE ELITE DA TECHNOBOLT GYM.
+            ATLETA: {user_doc.get('nome')} | GÊNERO: {genero_selecionado} | IMC: {imc:.2f}.
+            META: {obj}. RESTRIÇÕES: {r_a}, {r_m}, {r_f}.
 
-            RESTRITO: NÃO INCLUA SAUDAÇÕES OU TÍTULOS DE SEÇÃO. RESPOSTA DIRETA, FORMAL E TÉCNICA.
-            TODO O LAUDO DEVE SER UMA RESPOSTA DIRETA ÀS EVIDÊNCIAS DA IMAGEM EM RELAÇÃO AO OBJETIVO {obj}.
+            RESTRITO: SEM SAUDAÇÕES OU TÍTULOS. RESPOSTA DIRETA, FORMAL E TÉCNICA.
+            EXPLIQUE TERMOS TÉCNICOS ENTRE PARÊNTESES (EX: CINESIOLOGIA).
 
             [AVALIACAO]
-            Especialista em Cineantropometria e Antropometria (ISAK 4). Sua prioridade é o diagnóstico visual: identifique na imagem o somatotipo, o percentual de gordura (BF%) e pontos críticos de atenção (assimetrias, fraqueza de volume ou desvios posturais). Relacione como estas características visuais facilitam ou dificultam a meta de {obj} para o gênero {genero_selecionado}.
-            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações técnicas baseadas na sua análise visual.
+            Especialista em Cineantropometria e Antropometria (ISAK 4). Diagnóstico visual: somatotipo, BF% e pontos de atenção (assimetrias, fraquezas aparentes). Relacione a foto com a meta {obj}.
+            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações.
 
             [NUTRICAO]
-            Especialista em Nutrogenômica e Nutrologia. O planejamento dietético (2 opções/ref) deve focar na Flexibilidade Metabólica necessária para transformar o corpo da imagem no objetivo de {obj}. Ajuste os macronutrientes conforme o perfil visual (ex: se houver acúmulo adiposo central, priorize gestão glicêmica). Respeite: {r_a}.
-            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações para otimizar o metabolismo celular.
+            Especialista em Nutrogenômica e Nutrologia. Dieta extensa (2 opções/ref). Foco em Flexibilidade Metabólica baseado no perfil visual para {obj}. Respeite: {r_a}.
+            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações.
 
             [SUPLEMENTACAO]
-            Especialista em Farmacologia e Medicina Ortomolecular. Prescreva 3-10 itens focado no Nexo Metabólico entre a condição física atual (imagem) e o objetivo {obj}. Considere a modulação hormonal e recuperação específica para o gênero {genero_selecionado}. Verifique: {r_m}.
-            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações sobre timing ergogênico.
+            Especialista em Farmacologia e Medicina Ortomolecular. 3-10 itens via Nexo Metabólico. Foco em mTOR e modulação hormonal para {genero_selecionado}. Verifique: {r_m}.
+            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações.
 
             [TREINO]
-            Especialista em Neuromecânica e Biomecânica de Alta Performance. 
-            FOCO MANDATÓRIO: O TREINO DEVE SER A RESOLUÇÃO DOS PONTOS DE ATENÇÃO DA IMAGEM. Analise a foto e prescreva exercícios que corrijam falhas de simetria, volume ou postura observadas visualmente.
-            
-            ENTREGUE UM CRONOGRAMA COMPLETO DE SEGUNDA A DOMINGO.
-            Para cada dia, especifique múltiplos exercícios justificando a escolha biomecânica.
-            Estrutura: DIA DA SEMANA | NOME DO EXERCÍCIO | SÉRIES | REPS | JUSTIFICATIVA BIOMECÂNICA (Relacione obrigatoriamente com os pontos detectados na foto).
+            Especialista em Biomecânica e Neuromecânica. O TREINO DEVE RESOLVER OS PONTOS DE ATENÇÃO DA FOTO.
+            ENTREGUE UM CRONOGRAMA EXAUSTIVO DE SEGUNDA A DOMINGO (7 DIAS).
+            PARA CADA DIA, PRESCREVA MÚLTIPLOS EXERCÍCIOS E FORNEÇA UMA ALTERNATIVA TÉCNICA PARA CADA UM.
+            USE O FORMATO DE TABELA MARKDOWN: | Dia | Exercício | Alternativa | Séries/Reps | Justificativa Biomecânica |
             AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações sobre cadência e recrutamento motor.
             """
             
@@ -212,18 +204,10 @@ if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
                     match = re.search(padrao, res, re.DOTALL | re.IGNORECASE)
                     return match.group(1).strip() if match else ""
                 
-                r1 = extrair("[AVALIACAO]", "[NUTRICAO]")
-                r2 = extrair("[NUTRICAO]", "[SUPLEMENTACAO]")
-                r3 = extrair("[SUPLEMENTACAO]", "[TREINO]")
-                r4 = extrair("[TREINO]", None)
-                
+                r1, r2, r3, r4 = extrair("[AVALIACAO]", "[NUTRICAO]"), extrair("[NUTRICAO]", "[SUPLEMENTACAO]"), extrair("[SUPLEMENTACAO]", "[TREINO]"), extrair("[TREINO]", None)
                 if not any([r1, r2, r3, r4]): r1 = res
                 
-                nova = {
-                    "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                    "peso_reg": peso_at,
-                    "r1": r1 or "...", "r2": r2 or "...", "r3": r3 or "...", "r4": r4 or "..."
-                }
+                nova = {"data": datetime.now().strftime("%d/%m/%Y %H:%M"), "peso_reg": peso_at, "r1": r1 or "...", "r2": r2 or "...", "r3": r3 or "...", "r4": r4 or "..."}
                 db.usuarios.update_one({"usuario": st.session_state.user_atual}, {"$push": {"historico_dossies": nova}, "$inc": {"avaliacoes_restantes": -1} if not st.session_state.is_admin else {"avaliacoes_restantes": 0}})
                 st.rerun()
 
@@ -237,13 +221,15 @@ if user_doc and user_doc.get('historico_dossies'):
     
     for i, tab in enumerate(tabs[:4]):
         with tab:
-            raw_text = cs[i]
-            formatted_html = raw_text.replace('\n', '<br>')
-            st.markdown(f"<div class='result-card-unificado'>{formatted_html}</div>", unsafe_allow_html=True)
+            # Renderização direta em Markdown para suportar tabelas visualmente
+            st.markdown(f"<div class='result-card-unificado'>", unsafe_allow_html=True)
+            st.markdown(cs[i])
+            st.markdown(f"</div>", unsafe_allow_html=True)
             st.download_button(f"📥 PDF {ts[i]}", data=gerar_pdf_elite(user_doc['nome'], cs[i], ts[i], d['data']), file_name=f"{ts[i]}.pdf", key=f"{ts[i]}_{sel}")
     
     with tabs[4]:
         f_t = "LAUDO ANTROPOMÉTRICO:\n{}\n\nLAUDO NUTROLÓGICO:\n{}\n\nLAUDO DE SUPLEMENTAÇÃO:\n{}\n\nLAUDO BIOMECÂNICO:\n{}".format(d['r1'], d['r2'], d['r3'], d['r4'])
-        formatted_full_html = f_t.replace('\n', '<br>')
-        st.markdown(f"<div class='result-card-unificado'>{formatted_full_html}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='result-card-unificado'>", unsafe_allow_html=True)
+        st.markdown(f_t)
+        st.markdown(f"</div>", unsafe_allow_html=True)
         st.download_button("📥 BAIXAR COMPLETO", data=gerar_pdf_elite(user_doc['nome'], f_t, "Laudo Completo", d['data']), file_name="Laudo_Completo.pdf", key="full_{}".format(sel))
