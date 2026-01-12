@@ -144,7 +144,12 @@ if st.session_state.is_admin and db is not None:
 # --- SIDEBAR ---
 with st.sidebar:
     st.header("Atleta: {}".format(user_doc.get('nome', 'N/A').split()[0]))
-    st.write("Gênero: **{}**".format(user_doc.get('genero', 'Masculino')))
+    
+    # Gênero Editável e Sincronizado
+    lista_g = ["Masculino", "Feminino"]
+    gen_db = user_doc.get('genero', 'Masculino')
+    genero_selecionado = st.selectbox("Gênero Biológico", lista_g, index=lista_g.index(gen_db) if gen_db in lista_g else 0)
+    
     st.write("Créditos: **{}**".format(user_doc.get('avaliacoes_restantes', 0)))
     if st.button("LOGOUT"): st.session_state.logado = False; st.rerun()
     peso_at = st.number_input("Peso (kg)", 30.0, 250.0, 80.0)
@@ -160,10 +165,13 @@ if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
     if user_doc.get('avaliacoes_restantes', 0) > 0 or st.session_state.is_admin:
         with st.status("🧬 EXECUTANDO PROTOCOLO TECHNOBOLT..."):
             img = ImageOps.exif_transpose(Image.open(up)).convert("RGB")
-            img.thumbnail((600, 600)); imc = peso_at / ((altura/100)**2); gen = user_doc.get('genero', 'Masculino')
+            img.thumbnail((600, 600)); imc = peso_at / ((altura/100)**2)
+            
+            # Atualiza o Gênero no Banco de Dados antes da análise
+            db.usuarios.update_one({"usuario": st.session_state.user_atual}, {"$set": {"genero": genero_selecionado}})
             
             prompt_mestre = f"""VOCÊ É UM CONSELHO TÉCNICO DE ESPECIALISTAS DE ELITE.
-            INDIVIDUALIDADE BIOLÓGICA: ATLETA {user_doc.get('nome')} | GÊNERO {gen} | IMC {imc:.2f}.
+            INDIVIDUALIDADE BIOLÓGICA: ATLETA {user_doc.get('nome')} | GÊNERO {genero_selecionado} | IMC {imc:.2f}.
             META ESTRATÉGICA: {obj}.
             RESTRIÇÕES CADASTRADAS: {r_a}, {r_m}, {r_f}.
 
@@ -171,7 +179,7 @@ if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
             TODO O LAUDO DEVE SER UMA RESPOSTA DIRETA ÀS EVIDÊNCIAS DA IMAGEM EM RELAÇÃO AO OBJETIVO {obj}.
 
             [AVALIACAO]
-            Especialista em Cineantropometria e Antropometria (ISAK 4). Sua prioridade é o diagnóstico visual: identifique na imagem o somatotipo, o percentual de gordura (BF%) e pontos críticos de atenção (assimetrias, fraqueza de volume ou desvios posturais). Relacione como estas características visuais facilitam ou dificultam a meta de {obj} para o gênero {gen}.
+            Especialista em Cineantropometria e Antropometria (ISAK 4). Sua prioridade é o diagnóstico visual: identifique na imagem o somatotipo, o percentual de gordura (BF%) e pontos críticos de atenção (assimetrias, fraqueza de volume ou desvios posturais). Relacione como estas características visuais facilitam ou dificultam a meta de {obj} para o gênero {genero_selecionado}.
             AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações técnicas baseadas na sua análise visual.
 
             [NUTRICAO]
@@ -179,7 +187,7 @@ if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
             AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações para otimizar o metabolismo celular.
 
             [SUPLEMENTACAO]
-            Especialista em Farmacologia e Medicina Ortomolecular. Prescreva 3-10 itens focado no Nexo Metabólico entre a condição física atual (imagem) e o objetivo {obj}. Considere a modulação hormonal e recuperação específica para o gênero {gen}. Verifique: {r_m}.
+            Especialista em Farmacologia e Medicina Ortomolecular. Prescreva 3-10 itens focado no Nexo Metabólico entre a condição física atual (imagem) e o objetivo {obj}. Considere a modulação hormonal e recuperação específica para o gênero {genero_selecionado}. Verifique: {r_m}.
             AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações sobre timing ergogênico.
 
             [TREINO]
@@ -187,7 +195,7 @@ if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
             FOCO MANDATÓRIO: O TREINO DEVE SER A RESOLUÇÃO DOS PONTOS DE ATENÇÃO DA IMAGEM. Analise a foto e prescreva exercícios que corrijam falhas de simetria, volume ou postura observadas visualmente.
             
             ENTREGUE UM CRONOGRAMA COMPLETO DE SEGUNDA A DOMINGO.
-            Para cada dia, especifique múltiplos exercícios.
+            Para cada dia, especifique múltiplos exercícios justificando a escolha biomecânica.
             Estrutura: DIA DA SEMANA | NOME DO EXERCÍCIO | SÉRIES | REPS | JUSTIFICATIVA BIOMECÂNICA (Relacione obrigatoriamente com os pontos detectados na foto).
             AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações sobre cadência e recrutamento motor.
             """
