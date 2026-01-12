@@ -9,7 +9,7 @@ import urllib.parse
 from datetime import datetime
 from fpdf import FPDF
 from pymongo import MongoClient
-import pillow_heif  # Biblioteca para suporte a HEIC
+import pillow_heif
 
 # --- INICIALIZAÇÃO DE SUPORTE HEIC ---
 pillow_heif.register_heif_opener()
@@ -40,6 +40,34 @@ st.markdown("""
 <style>
     .stApp { background-color: #000000 !important; color: #ffffff !important; }
     [data-testid="stHeader"], [data-testid="stSidebar"] { background-color: #000000 !important; }
+    
+    /* Card de Boas-Vindas Premium */
+    .welcome-card {
+        background: linear-gradient(145deg, #0d0d0d, #1a1a1a);
+        border: 1px solid #333;
+        border-radius: 20px;
+        padding: 40px;
+        margin-bottom: 30px;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .welcome-title { color: #3b82f6; font-size: 2.5rem; font-weight: 800; margin-bottom: 10px; }
+    .welcome-subtitle { color: #888; font-size: 1.1rem; margin-bottom: 30px; }
+    
+    .instruction-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+    }
+    .step-box {
+        background: rgba(59, 130, 246, 0.05);
+        border: 1px border: 1px dashed #3b82f6;
+        border-radius: 15px;
+        padding: 20px;
+    }
+    .step-num { color: #3b82f6; font-size: 1.5rem; font-weight: bold; margin-bottom: 10px; }
+    
     .result-card-unificado { 
         background-color: #0d0d0d !important; border-left: 5px solid #3b82f6;
         border-radius: 12px; padding: 25px; margin-top: 15px; border: 1px solid #1a1a1a;
@@ -105,32 +133,54 @@ def realizar_scan_phd(prompt_mestre, img_pil):
         except: continue
     return None, "OFFLINE"
 
-# --- LOGIN / CADASTRO ---
+# --- LOGIN / CADASTRO COM TELA INICIAL UX ---
 if "logado" not in st.session_state: st.session_state.logado = False
 if not st.session_state.logado:
-    t1, t2 = st.tabs(["🔐 Login", "📝 Cadastro"])
+    # TELA INICIAL BONITA E INTUITIVA
+    st.markdown("""
+    <div class="welcome-card">
+        <div class="welcome-title">🏋️ TechnoBolt Gym Hub</div>
+        <div class="welcome-subtitle">A elite da Inteligência Artificial aplicada ao seu corpo.</div>
+        <div class="instruction-grid">
+            <div class="step-box">
+                <div class="step-num">01</div>
+                <b>Configuração</b><br>Preencha seu perfil, peso e objetivo na barra lateral.
+            </div>
+            <div class="step-box">
+                <div class="step-num">02</div>
+                <b>Scanner</b><br>Suba uma foto nítida. Suportamos HEIC (iPhone) nativamente.
+            </div>
+            <div class="step-box">
+                <div class="step-num">03</div>
+                <b>Análise</b><br>Inicie o protocolo. Nosso conselho PhD processará seus dados.
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    t1, t2 = st.tabs(["🔐 Acessar Minha Conta", "📝 Solicitar Novo Cadastro"])
     with t1:
         u_log = st.text_input("Usuário", key="login_u").lower().strip()
         p_log = st.text_input("Senha", type="password", key="login_p")
-        if st.button("ACESSAR HUB"):
+        if st.button("AUTENTICAR NO HUB"):
             udata = db.usuarios.find_one({"usuario": u_log}) if db is not None else None
             if udata and udata['senha'] == p_log and udata['status'] == 'ativo':
                 st.session_state.logado = True; st.session_state.user_atual = u_log; st.session_state.is_admin = udata.get('is_admin', False); st.rerun()
-            else: st.error("Acesso negado.")
+            else: st.error("Acesso negado. Verifique suas credenciais ou status.")
     with t2:
         n_reg = st.text_input("Nome Completo", key="reg_n")
         u_reg = st.text_input("Login", key="reg_u").lower().strip()
         p_reg = st.text_input("Senha", type="password", key="reg_p")
         g_reg = st.selectbox("Gênero", ["Masculino", "Feminino"], key="reg_g")
-        if st.button("CADASTRAR"):
+        if st.button("CADASTRAR ATLETA"):
             if n_reg and u_reg and p_reg and db is not None:
                 db.usuarios.insert_one({"usuario": u_reg, "senha": p_reg, "nome": n_reg, "genero": g_reg, "status": "pendente", "avaliacoes_restantes": 0, "historico_dossies": [], "data_renovacao": datetime.now().strftime("%d/%m/%Y")})
-                st.success("Solicitado!")
+                st.success("Solicitação enviada com sucesso! Aguarde ativação do admin.")
     st.stop()
 
+# --- TODO O RESTANTE DO CÓDIGO MANTIDO ÍNTEGRO ---
 user_doc = db.usuarios.find_one({"usuario": st.session_state.user_atual})
 
-# --- ADMIN PANEL ---
 if st.session_state.is_admin and db is not None:
     with st.expander("🛠️ GESTÃO DE ATLETAS"):
         usuarios_lista = list(db.usuarios.find({"usuario": {"$ne": "admin"}}))
@@ -145,7 +195,6 @@ if st.session_state.is_admin and db is not None:
                 db.usuarios.update_one({"usuario": usr['usuario']}, {"$set": {"avaliacoes_restantes": 4, "status": "ativo", "data_renovacao": datetime.now().strftime("%d/%m/%Y")}})
                 st.rerun()
 
-# --- SIDEBAR ---
 with st.sidebar:
     st.header(f"Atleta: {user_doc.get('nome', 'N/A').split()[0]}")
     lista_g = ["Masculino", "Feminino"]
@@ -159,14 +208,11 @@ with st.sidebar:
     r_a = st.text_area("Restrições Alimentares", "Nenhuma")
     r_m = st.text_area("Medicamentos", "Nenhum")
     r_f = st.text_area("Restrições Físicas", "Nenhuma")
-    # ATUALIZADO: Suporte a .heic adicionado no tipo de arquivo
     up = st.file_uploader("📸 Scanner de Performance", type=['jpg', 'jpeg', 'png', 'heic'])
 
-# --- PROCESSAMENTO (PROTOCOLOS CLÍNICOS & HEIC SUPPORT) ---
 if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
     if user_doc.get('avaliacoes_restantes', 0) > 0 or st.session_state.is_admin:
         with st.status("🧬 EXECUTANDO PROTOCOLO TECHNOBOLT..."):
-            # O PIL agora abre HEIC automaticamente devido ao register_heif_opener()
             img = ImageOps.exif_transpose(Image.open(up)).convert("RGB")
             img.thumbnail((600, 600)); imc = peso_at / ((altura/100)**2)
             db.usuarios.update_one({"usuario": st.session_state.user_atual}, {"$set": {"genero": genero_selecionado}})
@@ -234,7 +280,6 @@ if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
                 db.usuarios.update_one({"usuario": st.session_state.user_atual}, {"$push": {"historico_dossies": nova}, "$inc": {"avaliacoes_restantes": -1} if not st.session_state.is_admin else {"avaliacoes_restantes": 0}})
                 st.rerun()
 
-# --- EXIBIÇÃO ---
 if user_doc and user_doc.get('historico_dossies'):
     hist = user_doc['historico_dossies']
     sel = st.selectbox("📅 Consultar Laudos", [a['data'] for a in reversed(hist)])
