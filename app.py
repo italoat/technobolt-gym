@@ -157,7 +157,7 @@ with st.sidebar:
     r_f = st.text_area("Restrições Físicas", "Nenhuma")
     up = st.file_uploader("📸 Scanner de Performance", type=['jpg', 'jpeg', 'png'])
 
-# --- PROCESSAMENTO (PROTOCOLOS CLÍNICOS AVANÇADOS) ---
+# --- PROCESSAMENTO ---
 if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
     if user_doc.get('avaliacoes_restantes', 0) > 0 or st.session_state.is_admin:
         with st.status("🧬 EXECUTANDO PROTOCOLO TECHNOBOLT..."):
@@ -170,11 +170,10 @@ if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
             META: {obj}. RESTRIÇÕES: {r_a}, {r_m}, {r_f}.
 
             RESTRITO: SEM SAUDAÇÕES OU TÍTULOS. RESPOSTA DIRETA, FORMAL E TÉCNICA.
-            TODO O LAUDO DEVE SER UMA RESPOSTA DIRETA ÀS EVIDÊNCIAS DA IMAGEM EM RELAÇÃO AO OBJETIVO {obj}.
+            EXPLIQUE TERMOS TÉCNICOS ENTRE PARÊNTESES.
 
             [AVALIACAO]
-            Aja como Especialista em Cineantropometria e Antropometria (ISAK 4). Sua prioridade é o diagnóstico visual exaustivo dos seguintes marcos anatômicos (entregue em tabelas):
-
+            Aja como Especialista em Cineantropometria e Antropometria Avançada (ISAK 4). Sua prioridade é o diagnóstico visual exaustivo dos seguintes marcos anatômicos (entregue em tabelas):
             1. SEGMENTAÇÃO CORPORAL (PONTOS DE ATENÇÃO):
             - Tronco e Cabeça: Pescoço, tórax (mesoesternal), cintura (ponto mais estreito), abdômen (umbilical), quadril (maior protuberância glútea).
             - Membros Superiores: Braço relaxado, braço contraído (tensão máxima), antebraço, punho.
@@ -197,6 +196,11 @@ if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
             [TREINO]
             Especialista em Neuromecânica e Biomecânica de Alta Performance. O TREINO DEVE RESOLVER AS FALHAS DETECTADAS NA FOTO (tronco, membros e assimetrias).
             ENTREGUE UM CRONOGRAMA EXAUSTIVO DE SEGUNDA A DOMINGO (7 DIAS).
+            PARA CADA DIA, PRESCREVA UMA LISTA EXTENSA DE EXERCÍCIOS PARA MAXIMIZAR OS RESULTADOS DE {obj} (ALTO VOLUME).
+            FORNEÇA OBRIGATORIAMENTE UMA ALTERNATIVA TÉCNICA (EXERCÍCIO OPCIONAL/SUBSTITUTO) PARA CADA MOVIMENTO PRESCRITO.
+            
+            ⚠️ ATENÇÃO: CONSIDERE RIGOROSAMENTE AS RESTRIÇÕES FÍSICAS: {r_f} PARA NÃO PRESCREVER MOVIMENTOS LESIVOS.
+            
             USE TABELA MARKDOWN: | Dia | Exercício | Alternativa | Séries/Reps | Justificativa Biomecânica |
             AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações sobre cadência e recrutamento motor.
             """
@@ -240,4 +244,4 @@ if user_doc and user_doc.get('historico_dossies'):
         st.markdown(f"<div class='result-card-unificado'>", unsafe_allow_html=True)
         st.markdown(f_t)
         st.markdown(f"</div>", unsafe_allow_html=True)
-        st.download_button("📥 BAIXAR COMPLETO", data=gerar_pdf_elite(user_doc['nome'], f_t, "Laudo Completo", d['data']), file_name="Laudo_Completo.pdf", key=f"full_{sel}")
+        st.download_button("📥 BAIXAR COMPLETO", data=gerar_pdf_elite(user_doc['nome'], f_t, "Laudo Completo", d['data']), file_name="Laudo_Completo.pdf", key="full_{}".format(sel))
