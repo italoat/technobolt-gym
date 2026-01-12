@@ -9,3 +9,4 @@ google-generativeai
 fpdf
 pymongo
 dnspython
+pillow-heif
