@@ -9,6 +9,10 @@ import urllib.parse
 from datetime import datetime
 from fpdf import FPDF
 from pymongo import MongoClient
+import pillow_heif  # Biblioteca para suporte a HEIC
+
+# --- INICIALIZAÇÃO DE SUPORTE HEIC ---
+pillow_heif.register_heif_opener()
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="TechnoBolt Gym Hub", layout="wide", page_icon="🏋️")
@@ -155,12 +159,14 @@ with st.sidebar:
     r_a = st.text_area("Restrições Alimentares", "Nenhuma")
     r_m = st.text_area("Medicamentos", "Nenhum")
     r_f = st.text_area("Restrições Físicas", "Nenhuma")
-    up = st.file_uploader("📸 Scanner de Performance", type=['jpg', 'jpeg', 'png'])
+    # ATUALIZADO: Suporte a .heic adicionado no tipo de arquivo
+    up = st.file_uploader("📸 Scanner de Performance", type=['jpg', 'jpeg', 'png', 'heic'])
 
-# --- PROCESSAMENTO (PROTOCOLOS CLÍNICOS INTUITIVOS & LISTAS) ---
+# --- PROCESSAMENTO (PROTOCOLOS CLÍNICOS & HEIC SUPPORT) ---
 if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
     if user_doc.get('avaliacoes_restantes', 0) > 0 or st.session_state.is_admin:
         with st.status("🧬 EXECUTANDO PROTOCOLO TECHNOBOLT..."):
+            # O PIL agora abre HEIC automaticamente devido ao register_heif_opener()
             img = ImageOps.exif_transpose(Image.open(up)).convert("RGB")
             img.thumbnail((600, 600)); imc = peso_at / ((altura/100)**2)
             db.usuarios.update_one({"usuario": st.session_state.user_atual}, {"$set": {"genero": genero_selecionado}})
@@ -169,11 +175,11 @@ if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
             ATLETA: {user_doc.get('nome')} | GÊNERO: {genero_selecionado} | IMC: {imc:.2f}.
             META: {obj}. RESTRIÇÕES: {r_a}, {r_m}, {r_f}.
 
-            RESTRITO: SEM SAUDAÇÕES OU TÍTULOS. RESPOSTA DIRETA, FORMAL E TÉCNICA.
+            RESTRITO: SEM SAUDAÇÕES OU TÍTULOS. RESPOSTA DIRETA EM LISTAS (NÃO USE TABELAS).
             EXPLIQUE TODOS OS TERMOS TÉCNICOS ENTRE PARÊNTESES DE FORMA INTUITIVA.
 
             [AVALIACAO]
-            Aja como Especialista em Cineantropometria e Antropometria Avançada (ISAK 4). Sua prioridade é o diagnóstico visual exaustivo dos seguintes marcos anatômicos (entregue em listas organizadas):
+            Aja como Especialista em Cineantropometria e Antropometria Avançada (ISAK 4). Sua prioridade é o diagnóstico visual exaustivo entregue em listas organizadas:
 
             1. SEGMENTAÇÃO CORPORAL (PONTOS DE ATENÇÃO):
             - Tronco e Cabeça: Pescoço, tórax (mesoesternal - ponto médio do peito), cintura (ponto mais estreito), abdômen (umbilical - altura do umbigo), quadril (maior protuberância glútea - parte mais alta do bumbum).
