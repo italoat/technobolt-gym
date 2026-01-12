@@ -148,7 +148,7 @@ if not st.session_state.logado:
             </div>
             <div class="step-box">
                 <div class="step-num">02</div>
-                <b>Scanner</b><br>Suba uma foto nítida. Suportamos HEIC (iPhone) nativamente.
+                <b>Scanner</b><br>Suba uma foto nítida.
             </div>
             <div class="step-box">
                 <div class="step-num">03</div>
