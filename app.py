@@ -343,3 +343,5 @@ if user_doc and user_doc.get('historico_dossies'):
                     else:
                         st.info("Nenhum laudo encontrado para este atleta.")
                 st.divider()
+st.markdown("<br><br>", unsafe_allow_html=True)
+st.caption(f"TechnoBolt Solutions © 2026 | GYM v2.0")
