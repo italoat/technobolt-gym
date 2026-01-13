@@ -41,7 +41,6 @@ st.markdown("""
     .stApp { background-color: #000000 !important; color: #ffffff !important; }
     [data-testid="stHeader"], [data-testid="stSidebar"] { background-color: #000000 !important; }
     
-    /* Card de Boas-Vindas Premium */
     .welcome-card {
         background: linear-gradient(145deg, #0d0d0d, #1a1a1a);
         border: 1px solid #333;
@@ -62,7 +61,7 @@ st.markdown("""
     }
     .step-box {
         background: rgba(59, 130, 246, 0.05);
-        border: 1px border: 1px dashed #3b82f6;
+        border: 1px dashed #3b82f6;
         border-radius: 15px;
         padding: 20px;
     }
@@ -75,6 +74,9 @@ st.markdown("""
     }
     .result-card-unificado b, .result-card-unificado strong { color: #3b82f6; }
     .stButton>button { width: 100%; border-radius: 8px; font-weight: bold; background-color: #3b82f6 !important; color: white !important; }
+    
+    /* Tabela de Gestão */
+    .admin-table-header { color: #3b82f6; font-weight: bold; border-bottom: 1px solid #333; padding: 10px 0; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -136,7 +138,6 @@ def realizar_scan_phd(prompt_mestre, img_pil):
 # --- LOGIN / CADASTRO COM TELA INICIAL UX ---
 if "logado" not in st.session_state: st.session_state.logado = False
 if not st.session_state.logado:
-    # TELA INICIAL BONITA E INTUITIVA
     st.markdown("""
     <div class="welcome-card">
         <div class="welcome-title">🏋️ TechnoBolt Gym Hub</div>
@@ -178,23 +179,9 @@ if not st.session_state.logado:
                 st.success("Solicitação enviada com sucesso! Aguarde ativação do admin.")
     st.stop()
 
-# --- TODO O RESTANTE DO CÓDIGO MANTIDO ÍNTEGRO ---
 user_doc = db.usuarios.find_one({"usuario": st.session_state.user_atual})
 
-if st.session_state.is_admin and db is not None:
-    with st.expander("🛠️ GESTÃO DE ATLETAS"):
-        usuarios_lista = list(db.usuarios.find({"usuario": {"$ne": "admin"}}))
-        for usr in usuarios_lista:
-            c1, c2, c3, c4, c5 = st.columns([2, 2, 1, 1, 2])
-            c1.write(f"Atleta: {usr.get('usuario')}")
-            op_st = ["pendente", "ativo", "inativo"]
-            nst = c2.selectbox(f"Status_{usr['usuario']}", op_st, index=op_st.index(usr.get('status', 'pendente')))
-            if nst != usr.get('status'):
-                db.usuarios.update_one({"usuario": usr['usuario']}, {"$set": {"status": nst}}); st.rerun()
-            if c5.button(f"Renovar 4", key=f"ren_{usr['usuario']}"):
-                db.usuarios.update_one({"usuario": usr['usuario']}, {"$set": {"avaliacoes_restantes": 4, "status": "ativo", "data_renovacao": datetime.now().strftime("%d/%m/%Y")}})
-                st.rerun()
-
+# --- SIDEBAR ---
 with st.sidebar:
     st.header(f"Atleta: {user_doc.get('nome', 'N/A').split()[0]}")
     lista_g = ["Masculino", "Feminino"]
@@ -210,6 +197,7 @@ with st.sidebar:
     r_f = st.text_area("Restrições Físicas", "Nenhuma")
     up = st.file_uploader("📸 Scanner de Performance", type=['jpg', 'jpeg', 'png', 'heic'])
 
+# --- PROCESSAMENTO IA ---
 if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
     if user_doc.get('avaliacoes_restantes', 0) > 0 or st.session_state.is_admin:
         with st.status("🧬 EXECUTANDO PROTOCOLO TECHNOBOLT..."):
@@ -226,39 +214,28 @@ if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
 
             [AVALIACAO]
             Aja como Especialista em Cineantropometria e Antropometria Avançada (ISAK 4). Sua prioridade é o diagnóstico visual exaustivo entregue em listas organizadas:
-
             1. SEGMENTAÇÃO CORPORAL (PONTOS DE ATENÇÃO):
-            - Tronco e Cabeça: Pescoço, tórax (mesoesternal - ponto médio do peito), cintura (ponto mais estreito), abdômen (umbilical - altura do umbigo), quadril (maior protuberância glútea - parte mais alta do bumbum).
-            - Membros Superiores: Braço relaxado, braço contraído (tensão máxima), antebraço, punho.
-            - Membros Inferiores: Coxa proximal (logo abaixo do glúteo - parte superior), coxa medial (meio do fêmur - meio da coxa), coxa distal (acima do joelho - parte inferior), panturrilha máxima, tornozelo.
-
+            - Tronco e Cabeça: Pescoço, tórax (mesoesternal), cintura, abdômen (umbilical), quadril (glúteo).
+            - Membros Superiores: Braço relaxado, contraído, antebraço, punho.
+            - Membros Inferiores: Coxa proximal, medial, distal, panturrilha máxima, tornozelo.
             2. ESTIMATIVA DE DOBRAS CUTÂNEAS (DISTRIBUIÇÃO ADIPOSA):
-            - Tronco: Peitoral/Torácica (região do peito), axilar média (lateral do tronco), suprailíaca (acima do osso do quadril), supraespinal (diagonal acima do quadril), abdominal (lateral do umbigo), subescapular (abaixo da "asa" das costas), lombar (parte inferior das costas).
-            - Membros: Tricepital (atrás do braço), bicepital (frente do braço), coxa medial (meio da coxa), panturrilha medial (parte interna da panturrilha).
-
-            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações técnicas baseadas na análise visual desses perímetros e dobras.
+            - Tronco: Peitoral, axilar média, suprailíaca, supraespinal, abdominal, subescapular, lombar.
+            - Membros: Tricepital, bicepital, coxa medial, panturrilha medial.
+            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações técnicas.
 
             [NUTRICAO]
-            Especialista em Nutrogenômica e Nutrologia. Plano dietético extenso (2 opções/ref). Foco em Flexibilidade Metabólica para {obj}. Respeite: {r_a}.
+            Especialista em Nutrogenômica. Plano dietético extenso (2 opções/ref). Foco em Flexibilidade Metabólica. Respeite: {r_a}.
             AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações.
 
             [SUPLEMENTACAO]
-            Especialista em Farmacologia e Medicina Ortomolecular. 3-10 itens via Nexo Metabólico. Foco em mTOR e modulação hormonal. Verifique: {r_m}.
+            Especialista Ortomolecular. 3-10 itens via Nexo Metabólico. mTOR e modulação hormonal. Verifique: {r_m}.
             AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações.
 
             [TREINO]
-            Especialista em Neuromecânica e Biomecânica de Alta Performance. O TREINO DEVE RESOLVER AS FALHAS DETECTADAS NA FOTO.
-            ENTREGUE UM CRONOGRAMA EXAUSTIVO DE SEGUNDA A DOMINGO (7 DIAS) EM FORMATO DE LISTA DETALHADA.
-            PARA CADA DIA, PRESCREVA NO MÍNIMO 5 EXERCÍCIOS PARA MAXIMIZAR OS RESULTADOS DE {obj} (ALTO VOLUME).
-            FORNEÇA OBRIGATORIAMENTE UMA ALTERNATIVA TÉCNICA (EXERCÍCIO OPCIONAL/SUBSTITUTO) PARA CADA MOVIMENTO PRESCRITO.
-            
-            ⚠️ ATENÇÃO: CONSIDERE RIGOROSAMENTE AS RESTRIÇÕES FÍSICAS: {r_f}.
-            
-            ESTRUTURA DA LISTA:
-            - DIA DA SEMANA
-              1. Exercício Principal (Alternativa Técnica) | Séries x Reps | Justificativa Biomecânica baseada na foto.
-              2. [Próximo exercício...]
-            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações sobre cadência e recrutamento motor.
+            Especialista em Neuromecânica. O TREINO DEVE RESOLVER AS FALHAS DA FOTO.
+            7 DIAS EM LISTA DETALHADA. MÍNIMO 5 EXERCÍCIOS/DIA.
+            ESTRUTURA: Exercício (Alternativa) | Séries x Reps | Justificativa Biomecânica.
+            AO FINAL: 🚀 TECHNOBOLT INSIGHT: 3 recomendações.
             """
             
             res, engine = realizar_scan_phd(prompt_mestre, img)
@@ -274,29 +251,95 @@ if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
                     return match.group(1).strip() if match else ""
                 
                 r1, r2, r3, r4 = extrair("[AVALIACAO]", "[NUTRICAO]"), extrair("[NUTRICAO]", "[SUPLEMENTACAO]"), extrair("[SUPLEMENTACAO]", "[TREINO]"), extrair("[TREINO]", None)
-                if not any([r1, r2, r3, r4]): r1 = res
-                
                 nova = {"data": datetime.now().strftime("%d/%m/%Y %H:%M"), "peso_reg": peso_at, "r1": r1 or "...", "r2": r2 or "...", "r3": r3 or "...", "r4": r4 or "..."}
                 db.usuarios.update_one({"usuario": st.session_state.user_atual}, {"$push": {"historico_dossies": nova}, "$inc": {"avaliacoes_restantes": -1} if not st.session_state.is_admin else {"avaliacoes_restantes": 0}})
                 st.rerun()
 
+# --- EXIBIÇÃO EM ABAS ---
 if user_doc and user_doc.get('historico_dossies'):
     hist = user_doc['historico_dossies']
-    sel = st.selectbox("📅 Consultar Laudos", [a['data'] for a in reversed(hist)])
+    sel = st.selectbox("📅 Consultar Laudos Anteriores", [a['data'] for a in reversed(hist)])
     d = next(a for a in hist if a['data'] == sel)
-    tabs = st.tabs(["📊 Antropometria", "🥗 Nutrologia", "💊 Suplementação", "🏋️ Biomecânica", "📜 Completo"])
+    
+    # Construção Dinâmica das Abas
+    titulos_abas = ["📊 Antropometria", "🥗 Nutrologia", "💊 Suplementação", "🏋️ Biomecânica", "📜 Completo"]
+    if st.session_state.is_admin:
+        titulos_abas.append("⚙️ Gestão de Atletas")
+        
+    tabs = st.tabs(titulos_abas)
     cs, ts = [d['r1'], d['r2'], d['r3'], d['r4']], ["Antropometria", "Nutrologia", "Suplementacao", "Biomecanica"]
     
+    # Abas de Relatório
     for i, tab in enumerate(tabs[:4]):
         with tab:
-            st.markdown(f"<div class='result-card-unificado'>", unsafe_allow_html=True)
-            st.markdown(cs[i])
-            st.markdown(f"</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='result-card-unificado'>{cs[i]}</div>", unsafe_allow_html=True)
             st.download_button(f"📥 PDF {ts[i]}", data=gerar_pdf_elite(user_doc['nome'], cs[i], ts[i], d['data']), file_name=f"{ts[i]}.pdf", key=f"{ts[i]}_{sel}")
     
+    # Aba Completa
     with tabs[4]:
         f_t = f"LAUDO ANTROPOMÉTRICO:\n{d['r1']}\n\nLAUDO NUTROLÓGICO:\n{d['r2']}\n\nLAUDO DE SUPLEMENTAÇÃO:\n{d['r3']}\n\nLAUDO BIOMECÂNICO:\n{d['r4']}"
-        st.markdown(f"<div class='result-card-unificado'>", unsafe_allow_html=True)
-        st.markdown(f_t)
-        st.markdown(f"</div>", unsafe_allow_html=True)
-        st.download_button("📥 BAIXAR COMPLETO", data=gerar_pdf_elite(user_doc['nome'], f_t, "Laudo Completo", d['data']), file_name="Laudo_Completo.pdf", key="full_{}".format(sel))
+        st.markdown(f"<div class='result-card-unificado'>{f_t}</div>", unsafe_allow_html=True)
+        st.download_button("📥 BAIXAR LAUDO COMPLETO", data=gerar_pdf_elite(user_doc['nome'], f_t, "Laudo Completo", d['data']), file_name="Laudo_Completo.pdf", key="full_{}".format(sel))
+
+    # ABA DE GESTÃO (EXCLUSIVA ADMIN)
+    if st.session_state.is_admin:
+        with tabs[5]:
+            st.subheader("🛠️ Painel de Controle de Atletas")
+            usuarios = list(db.usuarios.find({"usuario": {"$ne": "admin"}}))
+            
+            # Cabeçalho da Tabela
+            cols_h = st.columns([1.5, 2, 1.2, 1, 1, 1.5, 1.5])
+            cols_h[0].markdown("**Usuário**")
+            cols_h[1].markdown("**Nome**")
+            cols_h[2].markdown("**Status**")
+            cols_h[3].markdown("**Créditos**")
+            cols_h[4].markdown("**Admin**")
+            cols_h[5].markdown("**Última Renovação**")
+            cols_h[6].markdown("**Ações**")
+            
+            st.divider()
+
+            for usr in usuarios:
+                u_id = str(usr['_id'])
+                c = st.columns([1.5, 2, 1.2, 1, 1, 1.5, 1.5])
+                
+                # Dados Básicos
+                c[0].write(f"`{usr['usuario']}`")
+                c[1].write(usr['nome'])
+                
+                # Status Editável
+                op_st = ["pendente", "ativo", "inativo"]
+                new_st = c[2].selectbox("n/a", op_st, index=op_st.index(usr.get('status', 'pendente')), key=f"st_{u_id}", label_visibility="collapsed")
+                if new_st != usr['status']:
+                    db.usuarios.update_one({"_id": usr['_id']}, {"$set": {"status": new_st}})
+                    st.rerun()
+                
+                # Créditos Editáveis
+                new_cr = c[3].number_input("n/a", 0, 100, int(usr.get('avaliacoes_restantes', 0)), key=f"cr_{u_id}", label_visibility="collapsed")
+                if new_cr != usr['avaliacoes_restantes']:
+                    db.usuarios.update_one({"_id": usr['_id']}, {"$set": {"avaliacoes_restantes": new_cr}})
+                    st.rerun()
+
+                # Admin Editável
+                is_adm = c[4].checkbox("Sim", value=usr.get('is_admin', False), key=f"adm_{u_id}")
+                if is_adm != usr.get('is_admin', False):
+                    db.usuarios.update_one({"_id": usr['_id']}, {"$set": {"is_admin": is_adm}})
+                    st.rerun()
+                
+                # Info e Botão Renovar
+                c[5].write(usr.get('data_renovacao', 'N/A'))
+                if c[6].button("🔥 Renovar (4)", key=f"btn_renov_{u_id}"):
+                    db.usuarios.update_one({"_id": usr['_id']}, {"$set": {"avaliacoes_restantes": 4, "status": "ativo", "data_renovacao": datetime.now().strftime("%d/%m/%Y")}})
+                    st.rerun()
+
+                # Histórico e Download por Usuário
+                with st.expander(f"Histórico de {usr['nome']} ({len(usr.get('historico_dossies', []))} laudos)"):
+                    if usr.get('historico_dossies'):
+                        h_usr = usr['historico_dossies']
+                        sel_h = st.selectbox("Escolha a data do laudo para baixar:", [a['data'] for a in reversed(h_usr)], key=f"sel_h_{u_id}")
+                        d_h = next(a for a in h_usr if a['data'] == sel_h)
+                        f_h = f"LAUDO ANTROPOMÉTRICO:\n{d_h['r1']}\n\nLAUDO NUTROLÓGICO:\n{d_h['r2']}\n\nLAUDO DE SUPLEMENTAÇÃO:\n{d_h['r3']}\n\nLAUDO BIOMECÂNICO:\n{d_h['r4']}"
+                        st.download_button("📥 Baixar PDF Completo", data=gerar_pdf_elite(usr['nome'], f_h, "Relatorio Historico", d_h['data']), file_name=f"Laudo_{usr['usuario']}_{sel_h.replace('/','-')}.pdf", key=f"dl_h_{u_id}_{sel_h}")
+                    else:
+                        st.info("Nenhum laudo encontrado para este atleta.")
+                st.divider()
