@@ -35,6 +35,28 @@ def iniciar_conexao():
 
 db = iniciar_conexao()
 
+# --- CONSTANTES DE DESIGN (REUTILIZÁVEIS) ---
+INSTRUCOES_HTML = """
+<div class="welcome-card">
+    <div class="welcome-title">🏋️ TechnoBolt Gym Hub</div>
+    <div class="welcome-subtitle">A elite da Inteligência Artificial aplicada ao seu corpo.</div>
+    <div class="instruction-grid">
+        <div class="step-box">
+            <div class="step-num">01</div>
+            <b>Configuração</b><br>Preencha seu perfil, peso e objetivo na barra lateral.
+        </div>
+        <div class="step-box">
+            <div class="step-num">02</div>
+            <b>Scanner</b><br>Suba uma foto nítida.
+        </div>
+        <div class="step-box">
+            <div class="step-num">03</div>
+            <b>Análise</b><br>Inicie o protocolo. Nosso conselho PhD processará seus dados.
+        </div>
+    </div>
+</div>
+"""
+
 # --- DESIGN SYSTEM ---
 st.markdown("""
 <style>
@@ -74,9 +96,6 @@ st.markdown("""
     }
     .result-card-unificado b, .result-card-unificado strong { color: #3b82f6; }
     .stButton>button { width: 100%; border-radius: 8px; font-weight: bold; background-color: #3b82f6 !important; color: white !important; }
-    
-    /* Tabela de Gestão */
-    .admin-table-header { color: #3b82f6; font-weight: bold; border-bottom: 1px solid #333; padding: 10px 0; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -135,29 +154,10 @@ def realizar_scan_phd(prompt_mestre, img_pil):
         except: continue
     return None, "OFFLINE"
 
-# --- LOGIN / CADASTRO COM TELA INICIAL UX ---
+# --- LOGIN / CADASTRO ---
 if "logado" not in st.session_state: st.session_state.logado = False
 if not st.session_state.logado:
-    st.markdown("""
-    <div class="welcome-card">
-        <div class="welcome-title">🏋️ TechnoBolt Gym Hub</div>
-        <div class="welcome-subtitle">A elite da Inteligência Artificial aplicada ao seu corpo.</div>
-        <div class="instruction-grid">
-            <div class="step-box">
-                <div class="step-num">01</div>
-                <b>Configuração</b><br>Preencha seu perfil, peso e objetivo na barra lateral.
-            </div>
-            <div class="step-box">
-                <div class="step-num">02</div>
-                <b>Scanner</b><br>Suba uma foto nítida.
-            </div>
-            <div class="step-box">
-                <div class="step-num">03</div>
-                <b>Análise</b><br>Inicie o protocolo. Nosso conselho PhD processará seus dados.
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(INSTRUCOES_HTML, unsafe_allow_html=True)
 
     t1, t2 = st.tabs(["🔐 Acessar Minha Conta", "📝 Solicitar Novo Cadastro"])
     with t1:
@@ -175,8 +175,13 @@ if not st.session_state.logado:
         g_reg = st.selectbox("Gênero", ["Masculino", "Feminino"], key="reg_g")
         if st.button("CADASTRAR ATLETA"):
             if n_reg and u_reg and p_reg and db is not None:
-                db.usuarios.insert_one({"usuario": u_reg, "senha": p_reg, "nome": n_reg, "genero": g_reg, "status": "pendente", "avaliacoes_restantes": 0, "historico_dossies": [], "data_renovacao": datetime.now().strftime("%d/%m/%Y")})
-                st.success("Solicitação enviada com sucesso! Aguarde ativação do admin.")
+                # CORREÇÃO 2: Verificação de usuário duplicado
+                existente = db.usuarios.find_one({"usuario": u_reg})
+                if existente:
+                    st.error("❌ Este nome de usuário já está em uso. Escolha outro.")
+                else:
+                    db.usuarios.insert_one({"usuario": u_reg, "senha": p_reg, "nome": n_reg, "genero": g_reg, "status": "pendente", "avaliacoes_restantes": 0, "historico_dossies": [], "data_renovacao": datetime.now().strftime("%d/%m/%Y")})
+                    st.success("✅ Solicitação enviada com sucesso! Aguarde ativação do admin.")
     st.stop()
 
 user_doc = db.usuarios.find_one({"usuario": st.session_state.user_atual})
@@ -196,6 +201,12 @@ with st.sidebar:
     r_m = st.text_area("Medicamentos", "Nenhum")
     r_f = st.text_area("Restrições Físicas", "Nenhuma")
     up = st.file_uploader("📸 Scanner de Performance", type=['jpg', 'jpeg', 'png', 'heic'])
+
+# --- TELA INICIAL DO ALUNO (ONBOARDING) ---
+# CORREÇÃO 1: Mostrar instruções se não houver histórico de análises
+if not user_doc.get('historico_dossies'):
+    st.markdown(INSTRUCOES_HTML, unsafe_allow_html=True)
+    st.info("👋 Bem-vindo! Configure seus dados na barra lateral e faça o upload da sua foto para começar sua primeira análise.")
 
 # --- PROCESSAMENTO IA ---
 if up and st.button("🚀 INICIAR ANÁLISE TÉCNICA"):
@@ -262,12 +273,12 @@ if user_doc and user_doc.get('historico_dossies'):
     d = next(a for a in hist if a['data'] == sel)
     
     # Construção Dinâmica das Abas
-    titulos_abas = ["📊 Antropometria", "🥗 Nutrologia", "💊 Suplementação", "🏋️ Biomecânica", "📜 Completo"]
+    titulos_abas = ["📊 Antropometria", "🥗 Dieta", "💊 Suplementação", "🏋️ Treino", "📜 Completo"]
     if st.session_state.is_admin:
         titulos_abas.append("⚙️ Gestão de Atletas")
         
     tabs = st.tabs(titulos_abas)
-    cs, ts = [d['r1'], d['r2'], d['r3'], d['r4']], ["Antropometria", "Nutrologia", "Suplementacao", "Biomecanica"]
+    cs, ts = [d['r1'], d['r2'], d['r3'], d['r4']], ["Antropometria", "Dieta", "Suplementacao", "Treino"]
     
     # Abas de Relatório
     for i, tab in enumerate(tabs[:4]):
@@ -277,9 +288,9 @@ if user_doc and user_doc.get('historico_dossies'):
     
     # Aba Completa
     with tabs[4]:
-        f_t = f"LAUDO ANTROPOMÉTRICO:\n{d['r1']}\n\nLAUDO NUTROLÓGICO:\n{d['r2']}\n\nLAUDO DE SUPLEMENTAÇÃO:\n{d['r3']}\n\nLAUDO BIOMECÂNICO:\n{d['r4']}"
+        f_t = f"LAUDO ANTROPOMÉTRICO:\n{d['r1']}\n\nDIETA:\n{d['r2']}\n\nLAUDO DE SUPLEMENTAÇÃO:\n{d['r3']}\n\nTREINO:\n{d['r4']}"
         st.markdown(f"<div class='result-card-unificado'>{f_t}</div>", unsafe_allow_html=True)
-        st.download_button("📥 BAIXAR LAUDO COMPLETO", data=gerar_pdf_elite(user_doc['nome'], f_t, "Laudo Completo", d['data']), file_name="Laudo_Completo.pdf", key="full_{}".format(sel))
+        st.download_button("📥 BAIXAR RELATÓRIO COMPLETO", data=gerar_pdf_elite(user_doc['nome'], f_t, "Laudo Completo", d['data']), file_name="Laudo_Completo.pdf", key="full_{}".format(sel))
 
     # ABA DE GESTÃO (EXCLUSIVA ADMIN)
     if st.session_state.is_admin:
@@ -303,36 +314,30 @@ if user_doc and user_doc.get('historico_dossies'):
                 u_id = str(usr['_id'])
                 c = st.columns([1.5, 2, 1.2, 1, 1, 1.5, 1.5])
                 
-                # Dados Básicos
                 c[0].write(f"`{usr['usuario']}`")
                 c[1].write(usr['nome'])
                 
-                # Status Editável
                 op_st = ["pendente", "ativo", "inativo"]
                 new_st = c[2].selectbox("n/a", op_st, index=op_st.index(usr.get('status', 'pendente')), key=f"st_{u_id}", label_visibility="collapsed")
                 if new_st != usr['status']:
                     db.usuarios.update_one({"_id": usr['_id']}, {"$set": {"status": new_st}})
                     st.rerun()
                 
-                # Créditos Editáveis
                 new_cr = c[3].number_input("n/a", 0, 100, int(usr.get('avaliacoes_restantes', 0)), key=f"cr_{u_id}", label_visibility="collapsed")
                 if new_cr != usr['avaliacoes_restantes']:
                     db.usuarios.update_one({"_id": usr['_id']}, {"$set": {"avaliacoes_restantes": new_cr}})
                     st.rerun()
 
-                # Admin Editável
                 is_adm = c[4].checkbox("Sim", value=usr.get('is_admin', False), key=f"adm_{u_id}")
                 if is_adm != usr.get('is_admin', False):
                     db.usuarios.update_one({"_id": usr['_id']}, {"$set": {"is_admin": is_adm}})
                     st.rerun()
                 
-                # Info e Botão Renovar
                 c[5].write(usr.get('data_renovacao', 'N/A'))
                 if c[6].button("🔥 Renovar (4)", key=f"btn_renov_{u_id}"):
                     db.usuarios.update_one({"_id": usr['_id']}, {"$set": {"avaliacoes_restantes": 4, "status": "ativo", "data_renovacao": datetime.now().strftime("%d/%m/%Y")}})
                     st.rerun()
 
-                # Histórico e Download por Usuário
                 with st.expander(f"Histórico de {usr['nome']} ({len(usr.get('historico_dossies', []))} laudos)"):
                     if usr.get('historico_dossies'):
                         h_usr = usr['historico_dossies']
@@ -343,5 +348,6 @@ if user_doc and user_doc.get('historico_dossies'):
                     else:
                         st.info("Nenhum laudo encontrado para este atleta.")
                 st.divider()
+
 st.markdown("<br><br>", unsafe_allow_html=True)
 st.caption(f"TechnoBolt Solutions © 2026 | GYM v2.0")
